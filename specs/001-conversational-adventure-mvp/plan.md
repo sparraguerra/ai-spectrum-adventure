@@ -6,7 +6,7 @@
 
 ## Summary
 
-Deliver a single-player, single-session vertical slice of "The Forgotten Tower" adventure: a Blazor Server web application backed by a deterministic .NET domain/rules engine that owns all authoritative game state (locations, inventory, objects, NPC, puzzle, world flags), with AI (via Microsoft Agent Framework) used strictly for narration, NPC dialogue, and visual-scene specification — never for state mutation. Player input (classic commands or free natural language) is interpreted into a structured intent, validated by a deterministic Rules Engine, applied as Game Events to the authoritative `GameState`, and only then narrated and (asynchronously, non-blockingly) illustrated with a retro 8-bit image. The MVP is a modular monolith (single deployable ASP.NET Core/Blazor app: `AI.SpectrumAdventure.Web`) composed of clearly separated projects (`Domain`, `Application`, `Infrastructure`, `Agents`, `Contracts`), deployed as one Azure Container App, with EF Core-backed relational persistence and Azure Blob Storage for generated images, OpenTelemetry/Application Insights observability, and Managed Identity for Azure service access — matching the project constitution's "AI creates possibilities, the game engine preserves reality" principle.
+Deliver a single-player, single-session vertical slice of "The Forgotten Tower" adventure: a Blazor Server web application backed by a deterministic .NET domain/rules engine that owns all authoritative game state (locations, inventory, objects, NPC, puzzle, world flags), with AI (via Microsoft Agent Framework) used strictly for narration, NPC dialogue, and visual-scene specification — never for state mutation. Player input (classic commands or free natural language) is interpreted into a structured intent, validated by a deterministic Rules Engine, applied as Game Events to the authoritative `GameState`, and only then narrated and (asynchronously, non-blockingly) illustrated with a retro 8-bit image. The MVP is a modular monolith (single deployable ASP.NET Core/Blazor app: `AI.SpectrumAdventure.Web`) composed of clearly separated projects (`Domain`, `Application`, `Infrastructure`, `Agents`, `Contracts`), deployed as one Azure Container App, with EF Core-backed relational persistence for game snapshots and adventure definitions, Azure Blob Storage for generated images, OpenTelemetry/Application Insights observability, and Managed Identity for Azure service access — matching the project constitution's "AI creates possibilities, the game engine preserves reality" principle.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Deliver a single-player, single-session vertical slice of "The Forgotten Tower" 
 
 **Primary Dependencies**: ASP.NET Core 10, Blazor (Interactive Server render mode), Microsoft Agent Framework (agent/workflow orchestration + structured output), Entity Framework Core 10, OpenTelemetry (+ Azure Monitor exporter), Azure.Identity (`DefaultAzureCredential`), Azure.Storage.Blobs.
 
-**Storage**: Relational database via EF Core for authoritative `GameState` (Azure Database for PostgreSQL Flexible Server in production; SQLite file or local PostgreSQL container for local development) + Azure Blob Storage (Azurite emulator locally) for generated/retro-processed visual scene images. No in-memory-only game state — a container replica MUST be able to restart without losing an active game (within the session lifetime defined by the spec's single-continuous-session assumption).
+**Storage**: Relational database via EF Core for authoritative `GameState`, persisted `AdventureId`, adventure definition JSON, and visual asset metadata (Azure Database for PostgreSQL Flexible Server in production; local PostgreSQL container for local development) + Azure Blob Storage (Azurite emulator locally) for generated/retro-processed visual scene image blobs. Packaged `Adventures/*.json` files seed the PostgreSQL adventure catalog when empty. No in-memory-only game state — a container replica MUST be able to restart without losing an active game (within the session lifetime defined by the spec's single-continuous-session assumption).
 
 **Testing**: xUnit + FluentAssertions for Domain/Application unit tests; xUnit + `Microsoft.AspNetCore.Mvc.Testing`/`WebApplicationFactory` for integration tests; Agent Framework test doubles / mocked chat clients for Agent-layer tests (no live LLM calls in CI).
 
@@ -26,7 +26,7 @@ Deliver a single-player, single-session vertical slice of "The Forgotten Tower" 
 
 **Constraints**: Domain layer MUST have zero dependency on Microsoft Agent Framework, LLM providers, Azure SDKs, EF Core, ASP.NET Core, or UI frameworks. AI agents MUST NOT directly mutate `GameState`. Image generation failures MUST NOT block or corrupt gameplay. No Dapr, no per-agent Container Apps, no microservices in the MVP.
 
-**Scale/Scope**: Single MVP scenario ("The Forgotten Tower"), 4 locations, ~5-8 objects/items, 1 NPC, 1 primary puzzle; designed to run one active game per browser session, but application processes MUST remain stateless/horizontally-scalable (no in-memory session affinity requirement) per constitution Principle XVII.
+**Scale/Scope**: The shipped catalog includes the MVP scenario ("The Forgotten Tower": 4 locations, ~5-8 objects/items, 1 NPC, 1 primary puzzle) and supports additional JSON-defined adventures selected before game start. Each active game persists its originating `AdventureId`; application processes remain stateless/horizontally-scalable (no in-memory session affinity requirement) per constitution Principle XVII.
 
 ## Constitution Check
 
@@ -49,7 +49,7 @@ Deliver a single-player, single-session vertical slice of "The Forgotten Tower" 
 | XIII | Progressive Architecture Evolution | PASS | Modular monolith now (Phase 1 topology); extraction points documented but not built. |
 | XIV | Asynchronous Processing and Events | PASS | Image generation runs via an in-process background queue (`Channel<T>` + `BackgroundService`), not Dapr, per research Decision 9. |
 | XV | Azure Identity and Secret Management | PASS | `DefaultAzureCredential` for Blob Storage/AI services in production; local dev uses user-secrets/Azurite. |
-| XVI | Persistence and Cloud Storage | PASS | Game data → managed relational DB; generated assets → Azure Blob Storage; Domain stays infrastructure-agnostic. |
+| XVI | Persistence and Cloud Storage | PASS | Game data + adventure definitions → managed relational DB; generated image blobs → Azure Blob Storage; Domain stays infrastructure-agnostic. |
 | XVII | Scalability and Stateless Compute | PASS | No in-memory session ownership; `GameId` resolves state from the database on every request; optimistic concurrency via EF Core row version. |
 | XVIII | Infrastructure as Code | DEFERRED (scheduled) | IaC (Bicep/azd) authoring is scheduled as task T179 in `tasks.md` (Phase 20); not a design blocker for this plan. |
 | XIX | Continuous Delivery | DEFERRED (scheduled) | CI/CD pipeline definition is scheduled as task T184 in `tasks.md` (Phase 20), not required to unblock architecture. |
@@ -117,10 +117,11 @@ src/
 │   ├── Items/ (GameItem, ItemState)
 │   ├── Npcs/ (Npc, KnowledgeEntry, ConversationMemory)
 │   ├── Puzzles/ (Puzzle, PuzzleSolutionCondition)
-│   └── Events/ (PlayerMoved, ItemTaken, DoorOpened, NpcRelationshipChanged, PuzzleSolved, LocationDiscovered)
+│   ├── Events/ (PlayerMoved, ItemTaken, DoorOpened, NpcRelationshipChanged, PuzzleSolved, LocationDiscovered)
+│   └── Adventures/ (packaged JSON adventure definitions used to seed the PostgreSQL catalog)
 │
 ├── AI.SpectrumAdventure.Infrastructure/         # EF Core, Blob Storage, Azure Identity, Telemetry wiring
-│   ├── Persistence/ (AdventureDbContext, Repositories, EF configurations, Migrations)
+│   ├── Persistence/ (AdventureDbContext, Game/VisualAsset/Adventure repositories and catalogs, EF configurations, Migrations)
 │   ├── Storage/ (BlobVisualAssetStore)
 │   └── Telemetry/ (OpenTelemetry setup helpers)
 │
@@ -152,7 +153,7 @@ infra/                                            # Infrastructure as Code for t
 └── identity.bicep
 ```
 
-**Structure Decision**: Single-solution modular monolith ("Option 1" style, adapted for a web application) with six projects (`Web`, `Application`, `Domain`, `Infrastructure`, `Agents`, `Contracts`) as mandated by the feature description, deployed as one Azure Container App (`spectrum-adventure-web`), plus a top-level `infra/` folder holding the Bicep IaC definitions used only at deployment time (Phase 20). `Domain` has no outbound project references; `Application` depends only on `Domain` + `Contracts` abstractions (interfaces), never directly on `Infrastructure` or `Agents` implementations (wired via DI in `Web`). This preserves the constitution's dependency-direction requirements and keeps future extraction of `Agents`/image pipeline into a separate worker (Phase 2/3 evolution) a matter of moving a project and swapping a DI registration, not a rewrite.
+**Structure Decision**: Single-solution modular monolith ("Option 1" style, adapted for a web application) with six projects (`Web`, `Application`, `Domain`, `Infrastructure`, `Agents`, `Contracts`) as mandated by the feature description, deployed as one Azure Container App (`spectrum-adventure-web`), plus a top-level `infra/` folder holding the Bicep IaC definitions used only at deployment time (Phase 20). `Domain` has no outbound project references; `Application` depends only on `Domain` + `Contracts` abstractions (interfaces), never directly on `Infrastructure` or `Agents` implementations (wired via DI in `Web`). Adventure content is JSON-defined and loaded through an `IAdventureCatalog` abstraction; PostgreSQL is the persistent catalog store, while packaged JSON files provide deterministic seed content. This preserves the constitution's dependency-direction requirements and keeps future extraction of `Agents`/image pipeline into a separate worker (Phase 2/3 evolution) a matter of moving a project and swapping a DI registration, not a rewrite.
 
 ## Complexity Tracking
 
@@ -177,4 +178,14 @@ All gates from the Constitution Check table above remain **PASS** after design:
 - The deployment was corrected to use the built ACR image rather than the default sample container image, and the app continued to serve gameplay routes successfully.
 - The manual quickstart checklist was completed against the live Azure environment with no contradictions to previously established facts and no constitution principle regressions.
 - Conclusion: all 22 constitution principles remain satisfied in the shipped implementation.
+
+### Dynamic adventure catalog re-check (Phase 22)
+
+- The hardcoded Forgotten Tower content was extracted into packaged JSON and `AdventureWorldFactory` now builds a `Game` from validated adventure definitions while preserving deterministic Domain behavior.
+- The Blazor start screen lists adventures through `IAdventureCatalog`, and `StartGameUseCase` creates the selected adventure instead of always starting a single hardcoded scenario.
+- Each `Game` snapshot persists `AdventureId` with backward-compatible loading for earlier snapshots; no database schema change is required for existing game rows because game state is serialized as JSON.
+- PostgreSQL now owns the persistent adventure catalog via the `adventures` table and `DatabaseAdventureCatalog`; packaged JSON files seed the table when empty. Blob Storage remains scoped to generated visual image blobs.
+- Validation: `az bicep build --file infra/main.bicep --outfile infra/main.json` and `dotnet test --nologo --verbosity minimal` completed successfully (`144` tests, `0` failed).
+
+**Result**: Constitution Check remains **PASS** after dynamic adventure catalog work. The Domain remains infrastructure-free, rules remain deterministic, and cloud storage responsibilities are split cleanly between PostgreSQL adventure/game data and Blob image blobs.
 

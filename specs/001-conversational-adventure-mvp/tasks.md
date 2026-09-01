@@ -402,6 +402,23 @@
 
 ---
 
+## Phase 22: Dynamic Adventure Catalog
+
+**Purpose**: Move the MVP from one hardcoded adventure to selectable, JSON-defined adventures persisted in PostgreSQL while preserving the deterministic engine boundaries.
+
+- [X] T199 Extract the Forgotten Tower scenario into `src/AI.SpectrumAdventure.Domain/Adventures/forgotten-tower.json` and keep it copied to build/publish output via `src/AI.SpectrumAdventure.Domain/AI.SpectrumAdventure.Domain.csproj`
+- [X] T200 Convert `AdventureWorldFactory` into a JSON-backed factory with `CreateNewGame(..., adventureId)` and `CreateNewGameFromJson(...)`, including validation for starting location, exits, objects, NPCs, and puzzle references, in `src/AI.SpectrumAdventure.Domain/Games/AdventureWorldFactory.cs`
+- [X] T201 Add an `IAdventureCatalog` abstraction and `AdventureCatalogItem` projection for listing/selecting adventures, in `src/AI.SpectrumAdventure.Application/Abstractions/IAdventureCatalog.cs` and `src/AI.SpectrumAdventure.Application/Games/AdventureCatalogItem.cs`
+- [X] T202 Persist `AdventureId` in `Game` snapshots with backward-compatible loading for existing snapshots, in `src/AI.SpectrumAdventure.Domain/Games/Game.cs` and `src/AI.SpectrumAdventure.Domain/Games/GameSnapshot.cs`
+- [X] T203 Add the `adventures` PostgreSQL table, EF configuration, migration, and `DatabaseAdventureCatalog` seed/fallback behavior, in `src/AI.SpectrumAdventure.Infrastructure/Persistence/`
+- [X] T204 Add a Blazor adventure selector and start the selected adventure through `StartGameUseCase`, in `src/AI.SpectrumAdventure.Web/Components/AdventurePage.razor` and `src/AI.SpectrumAdventure.Application/Games/StartGameUseCase.cs`
+- [X] T205 Update IaC and deployment notes so PostgreSQL stores adventure definitions and Blob Storage remains only for generated image blobs, in `infra/main.bicep`, `infra/containerapp.bicep`, and `specs/001-conversational-adventure-mvp/deployment-notes.md`
+- [X] T206 Regression tests for JSON factory loading, `AdventureId` snapshot round-trip, database catalog seeding, and adventure selector rendering, in `tests/AI.SpectrumAdventure.Domain.Tests/AdventureWorldFactoryTests.cs`, `tests/AI.SpectrumAdventure.Domain.Tests/GameSnapshotRoundTripTests.cs`, `tests/AI.SpectrumAdventure.IntegrationTests/DatabaseAdventureCatalogTests.cs`, and `tests/AI.SpectrumAdventure.IntegrationTests/WebSmokeTests.cs`
+
+**Checkpoint**: Multiple adventures can be defined as JSON, stored in PostgreSQL, selected from the UI, and used to create a persisted `Game` tied to its originating `AdventureId`.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies (strict, per user's required ordering)
@@ -428,6 +445,7 @@ Phase 1 (Setup)
                                     → Phase 19 (Containerization)
                                       → Phase 20 (Azure Container Apps Deployment)
                                         → Phase 21 (End-to-End Validation)
+                                          → Phase 22 (Dynamic Adventure Catalog)
 ```
 
 Rule enforced throughout: **the deterministic playable game (end of Phase 6) exists before AI becomes a dependency for gameplay (Phase 9+).** AI is never on the critical path for movement, inventory, or puzzle validation — only for narration, dialogue, and visuals.
@@ -499,9 +517,10 @@ Then in parallel: T049, T050, T051, T052 (distinct test files); T053 after T048.
 4. **User-facing polish (Phases 15-17)**: Build the Blazor UI once the underlying contracts (ActionResult, VisualAsset) are stable, then layer retro styling and async image updates.
 5. **Operational readiness (Phases 18-20)**: Observability, containerization, and Azure Container Apps deployment — deliberately sequenced *after* the gameplay experience is proven locally, per the user's explicit instruction not to let infrastructure work obscure gameplay validation.
 6. **Final validation (Phase 21)**: Full end-to-end proof against every spec user story, edge case, and constitution acceptance scenario, closing with a Constitution Compliance re-check.
+7. **Dynamic adventure catalog (Phase 22)**: Extract scenario content into JSON definitions, store adventure definitions in PostgreSQL, persist `AdventureId` with each game snapshot, and let the player choose from the available adventure catalog before starting.
 
 **Suggested MVP demo checkpoint**: End of Phase 6 — a fully playable, deterministic, test-covered "Forgotten Tower" adventure (no AI, no web UI yet) is the earliest point at which the core gameplay loop and puzzle can be demonstrated and validated against the spec's Success Criteria (minus AI narration and visuals).
 
 ## Format Validation
 
-All 198 tasks above follow the required checklist format: `- [ ] T### [P?] [USn?] Description with exact file path`. Setup (Phase 1), Foundational-equivalent phases (2-7, 9, 13, 14, 17-20) carry no story label where the task serves the architecture as a whole; every task that clearly serves one or more spec user stories carries the corresponding `[USn]` label(s); every task references at least one concrete file path under `src/` or `tests/`, or a named infrastructure/documentation artifact (`infra/`, `README.md`, `.github/workflows/`).
+All 206 tasks above follow the required checklist format: `- [ ] T### [P?] [USn?] Description with exact file path`. Setup (Phase 1), Foundational-equivalent phases (2-7, 9, 13, 14, 17-20, 22) carry no story label where the task serves the architecture as a whole; every task that clearly serves one or more spec user stories carries the corresponding `[USn]` label(s); every task references at least one concrete file path under `src/` or `tests/`, or a named infrastructure/documentation artifact (`infra/`, `README.md`, `.github/workflows/`).
