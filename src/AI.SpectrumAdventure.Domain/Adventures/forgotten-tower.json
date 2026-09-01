@@ -1,0 +1,71 @@
+{
+  "id": "forgotten-tower",
+  "title": "The Forgotten Tower",
+  "startingLocationId": "forest-entrance",
+  "locations": [
+    {
+      "id": "forest-entrance",
+      "name": "Forest Entrance",
+      "description": "You stand at the edge of a mysterious forest. A narrow path leads north into the shadows of ancient trees. Beside the path, a weathered sign leans in the undergrowth.",
+      "exits": [
+        { "direction": "North", "to": "dark-forest" }
+      ],
+      "objectIds": ["sign"]
+    },
+    {
+      "id": "dark-forest",
+      "name": "Dark Forest",
+      "description": "Towering, ancient trees block out most of the light here. The air is cold and still. A path leads south back to the forest entrance, east toward the sound of running water, and west toward a crumbling silhouette barely visible through the trees.",
+      "exits": [
+        { "direction": "South", "to": "forest-entrance" },
+        { "direction": "East", "to": "old-bridge" },
+        { "direction": "West", "to": "forgotten-tower", "requiredFlagKey": "tower-unlocked" }
+      ],
+      "npcIds": ["hermit"]
+    },
+    {
+      "id": "old-bridge",
+      "name": "Old Bridge",
+      "description": "A weathered wooden bridge spans a narrow ravine. Its planks creak underfoot. Something metallic glints between two loose boards.",
+      "exits": [
+        { "direction": "West", "to": "dark-forest" }
+      ],
+      "objectIds": ["bridge-key"]
+    },
+    {
+      "id": "forgotten-tower",
+      "name": "Forgotten Tower",
+      "description": "The Forgotten Tower rises before you, its entrance sealed by a heavy, rusted door. Vines and decades of neglect cling to the ancient stone.",
+      "exits": [
+        { "direction": "East", "to": "dark-forest" }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "sign",
+      "name": "Weathered Sign",
+      "description": "A weathered wooden sign, half-swallowed by moss. Something is carved into it.",
+      "states": ["visible", "interactive"]
+    },
+    {
+      "id": "bridge-key",
+      "name": "Rusted Bridge Key",
+      "description": "A heavy iron key, rusted but still solid. It looks like it belongs to something old.",
+      "states": ["visible", "collectible"]
+    }
+  ],
+  "npcs": [
+    {
+      "id": "hermit",
+      "name": "The Hermit",
+      "personality": "A reclusive old hermit who has watched over the Dark Forest for decades. Wary of strangers but not unkind; speaks in short, cryptic sentences and respects those who show patience.",
+      "knowledgeBoundary": ["tower-clue"]
+    }
+  ],
+  "puzzle": {
+    "id": "forgotten-tower-entrance",
+    "requiredItemId": "bridge-key",
+    "requiredClueKey": "tower-clue"
+  }
+}

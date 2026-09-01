@@ -1,0 +1,180 @@
+@page "/adventure"
+
+@using AI.SpectrumAdventure.Application.Games
+@using AI.SpectrumAdventure.Application.Orchestration
+@using AI.SpectrumAdventure.Application.Abstractions
+@using AI.SpectrumAdventure.Contracts
+@using AI.SpectrumAdventure.Domain.Games
+
+@inject IGameRepository GameRepository
+@inject IIntentInterpreter IntentInterpreter
+@inject IVisualArtDirector VisualArtDirector
+@inject IImagePipeline ImagePipeline
+@inject IVisualAssetRepository VisualAssetRepository
+@inject IAdventureCatalog AdventureCatalog
+
+<PageTitle>Adventure</PageTitle>
+
+<div class="@(IsCrtEnabled ? "crt-enabled" : string.Empty)">
+    <div class="adventure-shell">
+        <div class="d-flex justify-content-end mb-3">
+            <label class="crt-toggle">
+                <input type="checkbox" @bind="IsCrtEnabled" />
+                CRT effect
+            </label>
+        </div>
+
+        @if (CurrentGame is null)
+        {
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-5">
+                    <h1 class="display-6 mb-3">Adventure</h1>
+                    <p class="lead mb-4">The forest has awakened. The path ahead is uncertain, but the story is yours to shape.</p>
+                    @if (AvailableAdventures.Count > 0)
+                    {
+                        <div class="mb-4">
+                            <label class="form-label" for="adventure-select">Choose your adventure</label>
+                            <select id="adventure-select" class="form-control" @bind="SelectedAdventureId" disabled="@IsProcessing">
+                                @foreach (var adventure in AvailableAdventures)
+                                {
+                                    <option value="@adventure.Id">@adventure.Title</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning mb-4">No adventures are available.</div>
+                    }
+                    <button class="btn btn-primary btn-lg" type="button" @onclick="StartGameAsync" disabled="@(IsProcessing || AvailableAdventures.Count == 0)">
+                        @(IsProcessing ? "Starting..." : "Start game")
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4 align-items-start">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body">
+                            <LocationHeader Game="CurrentGame" Result="LastResult" />
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body">
+                            <SceneImage Game="CurrentGame" Result="LastResult" />
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body">
+                            <h2 class="h5 mb-3">Narrative</h2>
+                            <p class="mb-0">@LastResult?.Narrative</p>
+                            @if (LastResult is not null && !LastResult.Success)
+                            {
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    @LastResult.Reason
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <CommandInput Disabled="@IsProcessing" OnSubmit="HandleSubmitAsync" />
+                        </div>
+                    </div>
+
+                    @if (IsProcessing)
+                    {
+                        <div class="alert alert-info mt-3 mb-0" role="status">The world responds...</div>
+                    }
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body">
+                            <InventoryPanel Game="CurrentGame" />
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <NpcDialoguePanel Game="CurrentGame" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private Game? CurrentGame;
+    private ActionResult? LastResult;
+    private IReadOnlyCollection<AdventureCatalogItem> AvailableAdventures = [];
+    private string SelectedAdventureId = AdventureWorldFactory.DefaultAdventureId;
+    private bool IsProcessing;
+    private bool IsCrtEnabled;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AvailableAdventures = await AdventureCatalog.ListAsync();
+        SelectedAdventureId = AvailableAdventures.FirstOrDefault()?.Id ?? AdventureWorldFactory.DefaultAdventureId;
+    }
+
+    private async Task StartGameAsync()
+    {
+        if (IsProcessing) return;
+
+        IsProcessing = true;
+
+        try
+        {
+            var game = await new StartGameUseCase(GameRepository, AdventureCatalog).ExecuteAsync(SelectedAdventureId);
+            CurrentGame = game;
+            var initialResult = AdventureOrchestrator.ProcessAction(game, new ParsedIntent(IntentAction.Look, null, new Dictionary<string, string>(), 1.0, "look"));
+            LastResult = await VisualSceneOrchestrator.AttachVisualAsync(
+                game,
+                initialResult,
+                VisualArtDirector,
+                ImagePipeline,
+                VisualAssetRepository,
+                ensureCurrentScene: true);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private async Task HandleSubmitAsync(string input)
+    {
+        if (CurrentGame is null || string.IsNullOrWhiteSpace(input))
+        {
+            return;
+        }
+
+        IsProcessing = true;
+
+        try
+        {
+            var intent = await IntentInterpreter.InterpretAsync(input);
+            var result = AdventureOrchestrator.ProcessAction(CurrentGame, intent);
+            LastResult = await VisualSceneOrchestrator.AttachVisualAsync(
+                CurrentGame,
+                result,
+                VisualArtDirector,
+                ImagePipeline,
+                VisualAssetRepository);
+
+            await GameRepository.SaveAsync(CurrentGame);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+}

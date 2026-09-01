@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "npc-response.schema.json",
+  "title": "NpcResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["npcId", "reply", "revealedKnowledgeKeys"],
+  "properties": {
+    "npcId": { "type": "string" },
+    "reply": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "revealedKnowledgeKeys": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Subset of the NPC's authoritative KnowledgeBoundary that this reply drew upon; the orchestrator rejects/regenerates if any key is not in the NPC's allowed set (enforces FR-017)."
+    },
+    "suggestedTopics": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional topics the NPC may proactively suggest when the player's input is generic/unsure (spec Clarification Q3)."
+    }
+  }
+}

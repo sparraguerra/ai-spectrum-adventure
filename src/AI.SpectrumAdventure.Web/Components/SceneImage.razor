@@ -1,0 +1,101 @@
+@using AI.SpectrumAdventure.Contracts
+@using AI.SpectrumAdventure.Application.Abstractions
+@using AI.SpectrumAdventure.Application.Games
+@using AI.SpectrumAdventure.Domain.Games
+@implements IAsyncDisposable
+
+@inject ISceneUpdateNotifier SceneUpdateNotifier
+@inject IServiceScopeFactory ScopeFactory
+
+@if (string.IsNullOrWhiteSpace(SceneUrl))
+{
+    <div class="retro-scene-frame" role="status" aria-live="polite">
+        <div class="retro-scene-placeholder">
+            Scene image pending
+        </div>
+    </div>
+}
+else
+{
+    <div class="retro-scene-frame">
+        <img src="@SceneUrl" class="retro-scene-image" alt="Current scene" />
+    </div>
+}
+
+@code {
+    [Parameter] public Game? Game { get; set; }
+
+    [Parameter] public ActionResult? Result { get; set; }
+
+    private IDisposable? SceneSubscription;
+    private CancellationTokenSource? PollingCancellation;
+    private Guid? SubscribedGameId;
+    private string? SceneUrl;
+    private ActionResult? LastProcessedResult;
+
+    protected override void OnParametersSet()
+    {
+        if (Result is not null && !ReferenceEquals(Result, LastProcessedResult))
+        {
+            LastProcessedResult = Result;
+
+            // Drop the stale image on a location change so it isn't shown while the new one regenerates.
+            SceneUrl = Result.SceneChanged ? Result.VisualAssetUrl : SceneUrl ?? Result.VisualAssetUrl;
+        }
+
+        if (Game is null || SubscribedGameId == Game.Id.Value)
+        {
+            return;
+        }
+
+        SceneSubscription?.Dispose();
+        PollingCancellation?.Cancel();
+        SubscribedGameId = Game.Id.Value;
+        SceneSubscription = SceneUpdateNotifier.Subscribe(Game.Id.Value, HandleSceneUpdateAsync);
+        PollingCancellation = new CancellationTokenSource();
+        _ = PollForVisualAsync(Game, PollingCancellation.Token);
+    }
+
+    private Task HandleSceneUpdateAsync(SceneUpdate update)
+    {
+        if (update.Status == VisualAssetStatus.Ready && !string.IsNullOrWhiteSpace(update.VisualAssetUrl))
+        {
+            SceneUrl = update.VisualAssetUrl;
+        }
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PollForVisualAsync(Game game, CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            var sceneStateKey = SceneStateKeyBuilder.Build(game.CurrentLocation.Id.Value, game.WorldFlagKeys);
+            using var scope = ScopeFactory.CreateScope();
+            var repository = scope.ServiceProvider.GetRequiredService<IVisualAssetRepository>();
+            var asset = await repository.FindAsync(sceneStateKey, cancellationToken);
+
+            if (asset is { Status: VisualAssetStatus.Ready, BlobUri: not null })
+            {
+                SceneUrl = asset.BlobUri;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            if (asset?.Status == VisualAssetStatus.Failed)
+            {
+                return;
+            }
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        SceneSubscription?.Dispose();
+        PollingCancellation?.Cancel();
+        PollingCancellation?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

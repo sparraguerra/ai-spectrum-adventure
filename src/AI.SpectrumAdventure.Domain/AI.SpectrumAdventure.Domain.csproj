@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AI.SpectrumAdventure.Domain.Tests" />
+    <InternalsVisibleTo Include="AI.SpectrumAdventure.Application" />
+    <InternalsVisibleTo Include="AI.SpectrumAdventure.Application.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Adventures\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" TargetPath="Adventures\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

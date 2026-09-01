@@ -1,0 +1,41 @@
+<div class="input-group input-group-lg">
+    <label class="visually-hidden" for="adventure-command">Adventure command</label>
+    <input id="adventure-command" class="form-control"
+           type="text"
+           placeholder="Type a command..."
+           disabled="@Disabled"
+           @bind="CurrentInput"
+           @bind:event="oninput"
+           @onkeydown="HandleKeyDown" />
+    <button class="btn btn-primary" type="button" disabled="@Disabled" @onclick="SubmitAsync">
+        Submit
+    </button>
+</div>
+
+@code {
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+
+    private string CurrentInput { get; set; } = string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentInput))
+        {
+            return;
+        }
+
+        var value = CurrentInput;
+        CurrentInput = string.Empty;
+        await OnSubmit.InvokeAsync(value);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await SubmitAsync();
+        }
+    }
+}

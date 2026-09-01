@@ -1,0 +1,137 @@
+:root {
+    --spectrum-ink: #10121b;
+    --spectrum-paper: #f4efd3;
+    --spectrum-yellow: #f7e63b;
+    --spectrum-cyan: #4fe4ff;
+    --spectrum-magenta: #ee5bc7;
+    --spectrum-red: #f35b53;
+    --spectrum-blue: #3654d9;
+    --spectrum-green: #5bca74;
+    --spectrum-muted: #a8afbe;
+    --spectrum-line: #30384c;
+}
+
+html,
+body {
+    min-height: 100%;
+    background-color: var(--spectrum-ink);
+    background-image: linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px), linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px);
+    background-size: 16px 16px;
+    color: var(--spectrum-paper);
+    font-family: "Lucida Console", "Courier New", monospace;
+}
+
+.adventure-shell {
+    max-width: 1120px;
+    margin-inline: auto;
+}
+
+.adventure-shell .card {
+    border: 2px solid var(--spectrum-line) !important;
+    border-radius: 0;
+    background: var(--spectrum-ink);
+    box-shadow: 6px 6px 0 rgb(79 228 255 / 0.18) !important;
+    color: var(--spectrum-paper);
+}
+
+.adventure-shell h1,
+.adventure-shell h2,
+.adventure-shell h3 {
+    color: var(--spectrum-yellow);
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.adventure-shell .btn-primary {
+    border: 2px solid var(--spectrum-yellow);
+    border-radius: 0;
+    background: var(--spectrum-blue);
+    color: var(--spectrum-paper);
+    font-weight: 700;
+}
+
+.adventure-shell .btn-primary:hover:not(:disabled) {
+    background: var(--spectrum-magenta);
+    color: var(--spectrum-ink);
+}
+
+.adventure-shell .form-control {
+    border: 2px solid var(--spectrum-cyan);
+    border-radius: 0;
+    background: #171c2b;
+    color: var(--spectrum-paper);
+}
+
+.adventure-shell .form-control::placeholder {
+    color: var(--spectrum-muted);
+}
+
+/* Bootstrap's .text-muted defaults to a near-black gray, invisible on our dark background. */
+.adventure-shell .text-muted {
+    color: var(--spectrum-muted) !important;
+}
+
+.adventure-shell .form-control:focus,
+.adventure-shell .btn:focus-visible,
+.crt-toggle:focus-visible {
+    outline: 3px solid var(--spectrum-yellow);
+    outline-offset: 3px;
+    box-shadow: none;
+}
+
+.retro-scene-frame {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border: 3px solid var(--spectrum-cyan);
+    background: #06080f;
+}
+
+.retro-scene-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    object-fit: cover;
+}
+
+.retro-scene-placeholder {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    padding: 1.5rem;
+    background: repeating-linear-gradient(45deg, #171c2b 0 8px, #10121b 8px 16px);
+    color: var(--spectrum-cyan);
+    text-align: center;
+}
+
+.crt-enabled .adventure-shell::after {
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background: repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.22) 0 1px, transparent 1px 4px), radial-gradient(ellipse at center, transparent 45%, rgb(0 0 0 / 0.3) 100%);
+}
+
+.crt-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--spectrum-paper);
+    cursor: pointer;
+}
+
+.crt-toggle input {
+    accent-color: var(--spectrum-magenta);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+    }
+}

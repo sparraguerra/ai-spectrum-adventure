@@ -1,0 +1,1006 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.46.1.21595",
+      "templateHash": "18277429315864593840"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for all resources."
+      }
+    },
+    "appName": {
+      "type": "string",
+      "defaultValue": "spectrum-adventure",
+      "metadata": {
+        "description": "Short application name used for resource naming."
+      }
+    },
+    "containerAppName": {
+      "type": "string",
+      "defaultValue": "spectrum-adventure-web",
+      "metadata": {
+        "description": "Container App name."
+      }
+    },
+    "registryName": {
+      "type": "string",
+      "defaultValue": "spectrumadventure",
+      "metadata": {
+        "description": "Container registry name suffix."
+      }
+    },
+    "postgresAdminUsername": {
+      "type": "string",
+      "defaultValue": "pgadmin",
+      "metadata": {
+        "description": "PostgreSQL admin username."
+      }
+    },
+    "postgresAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "PostgreSQL admin password."
+      }
+    },
+    "containerImage": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Deployment container image reference, e.g. myregistry.azurecr.io/spectrum-adventure:latest. This must be set explicitly for a real deployment; the sample image is intentionally not the default."
+      }
+    },
+    "deployAiFoundry": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Deploy an Azure AI Foundry account with the chat and image model deployments. Set to false to reuse an existing endpoint via azureAiEndpoint."
+      }
+    },
+    "aiFoundryLocation": {
+      "type": "string",
+      "defaultValue": "[parameters('location')]",
+      "metadata": {
+        "description": "Region for the Azure AI Foundry account. Model availability is region specific, so it can differ from the app region."
+      }
+    },
+    "deployAiFoundryImageModel": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Set to false when the image model is not available in aiFoundryLocation."
+      }
+    },
+    "azureAiEndpoint": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure AI Foundry / Azure OpenAI endpoint for the app. Leave empty to use the endpoint of the AI Foundry account deployed by this template."
+      }
+    },
+    "azureAiChatDeployment": {
+      "type": "string",
+      "defaultValue": "gpt-4.1-mini",
+      "metadata": {
+        "description": "Chat deployment name for Azure OpenAI."
+      }
+    },
+    "azureAiChatModelName": {
+      "type": "string",
+      "defaultValue": "gpt-4.1-mini",
+      "metadata": {
+        "description": "Chat model name in the Azure OpenAI catalogue."
+      }
+    },
+    "azureAiChatModelVersion": {
+      "type": "string",
+      "defaultValue": "2025-04-14",
+      "metadata": {
+        "description": "Chat model version."
+      }
+    },
+    "azureAiImageDeployment": {
+      "type": "string",
+      "defaultValue": "gpt-image-1-mini",
+      "metadata": {
+        "description": "Image deployment name for Azure OpenAI."
+      }
+    },
+    "azureAiImageModelName": {
+      "type": "string",
+      "defaultValue": "gpt-image-1-mini",
+      "metadata": {
+        "description": "Image model name in the Azure OpenAI catalogue."
+      }
+    },
+    "azureAiImageModelVersion": {
+      "type": "string",
+      "defaultValue": "2025-10-06",
+      "metadata": {
+        "description": "Image model version."
+      }
+    },
+    "appInsightsConnectionString": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Application Insights connection string used by the app."
+      }
+    }
+  },
+  "variables": {
+    "uniqueSuffix": "[uniqueString(resourceGroup().id)]",
+    "normalizedAppName": "[toLower(replace(parameters('appName'), '_', '-'))]",
+    "logAnalyticsWorkspaceName": "[take(format('law-{0}-{1}', variables('normalizedAppName'), variables('uniqueSuffix')), 63)]",
+    "appInsightsName": "[take(format('appi-{0}-{1}', variables('normalizedAppName'), variables('uniqueSuffix')), 255)]",
+    "storageAccountName": "[take(replace(toLower(format('st{0}{1}', variables('normalizedAppName'), variables('uniqueSuffix'))), '-', ''), 24)]",
+    "acrName": "[take(replace(toLower(format('{0}{1}', parameters('registryName'), variables('uniqueSuffix'))), '-', ''), 50)]",
+    "postgresServerName": "[take(format('psql-{0}-{1}', variables('normalizedAppName'), variables('uniqueSuffix')), 63)]",
+    "databaseName": "adventure",
+    "visualAssetsContainerName": "visual-assets",
+    "identityName": "[format('id-{0}-{1}', variables('normalizedAppName'), variables('uniqueSuffix'))]",
+    "aiFoundryAccountName": "[take(format('aif-{0}-{1}', variables('normalizedAppName'), variables('uniqueSuffix')), 63)]",
+    "aiFoundryProjectName": "[take(format('proj-{0}', variables('normalizedAppName')), 32)]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2022-10-01",
+      "name": "[variables('logAnalyticsWorkspaceName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30,
+        "features": {
+          "enableLogAccessUsingOnlyResourcePermissions": true
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[variables('appInsightsName')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
+        "Flow_Type": "Bluefield",
+        "Request_Source": "rest",
+        "RetentionInDays": 90
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "allowBlobPublicAccess": false,
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "publicNetworkAccess": "Enabled",
+        "allowSharedKeyAccess": true
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', variables('visualAssetsContainerName'))]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-07-01",
+      "name": "[variables('acrName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": true
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "apiVersion": "2023-06-01-preview",
+      "name": "[variables('postgresServerName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_B2s",
+        "tier": "Burstable"
+      },
+      "properties": {
+        "version": "16",
+        "administratorLogin": "[parameters('postgresAdminUsername')]",
+        "administratorLoginPassword": "[parameters('postgresAdminPassword')]",
+        "storage": {
+          "storageSizeGB": 32,
+          "autoGrow": "Disabled"
+        },
+        "backup": {
+          "backupRetentionDays": 7
+        },
+        "network": {
+          "publicNetworkAccess": "Enabled",
+          "delegatedSubnetResourceId": null,
+          "privateDnsZoneArmResourceId": null
+        },
+        "highAvailability": {
+          "mode": "Disabled"
+        },
+        "availabilityZone": "1",
+        "createMode": "Default"
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+      "apiVersion": "2023-06-01-preview",
+      "name": "[format('{0}/{1}', variables('postgresServerName'), variables('databaseName'))]",
+      "properties": {
+        "charset": "UTF8",
+        "collation": "en_US.utf8"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployAiFoundry')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "ai-foundry-module",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('aiFoundryLocation')]"
+          },
+          "aiFoundryAccountName": {
+            "value": "[variables('aiFoundryAccountName')]"
+          },
+          "aiFoundryProjectName": {
+            "value": "[variables('aiFoundryProjectName')]"
+          },
+          "aiFoundryProjectDisplayName": {
+            "value": "AI Spectrum Adventure"
+          },
+          "customSubDomainName": {
+            "value": "[variables('aiFoundryAccountName')]"
+          },
+          "chatDeploymentName": {
+            "value": "[parameters('azureAiChatDeployment')]"
+          },
+          "chatModelName": {
+            "value": "[parameters('azureAiChatModelName')]"
+          },
+          "chatModelVersion": {
+            "value": "[parameters('azureAiChatModelVersion')]"
+          },
+          "deployImageModel": {
+            "value": "[parameters('deployAiFoundryImageModel')]"
+          },
+          "imageDeploymentName": {
+            "value": "[parameters('azureAiImageDeployment')]"
+          },
+          "imageModelName": {
+            "value": "[parameters('azureAiImageModelName')]"
+          },
+          "imageModelVersion": {
+            "value": "[parameters('azureAiImageModelVersion')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "1682622163455825771"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure region for the AI Foundry account. Model availability is region specific."
+              }
+            },
+            "aiFoundryAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure AI Foundry (Cognitive Services AIServices) account name."
+              }
+            },
+            "aiFoundryProjectName": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure AI Foundry project name created under the account."
+              }
+            },
+            "aiFoundryProjectDisplayName": {
+              "type": "string",
+              "defaultValue": "[parameters('aiFoundryProjectName')]",
+              "metadata": {
+                "description": "Display name for the AI Foundry project."
+              }
+            },
+            "customSubDomainName": {
+              "type": "string",
+              "defaultValue": "[toLower(parameters('aiFoundryAccountName'))]",
+              "metadata": {
+                "description": "Custom subdomain used to build the account endpoints. Must be globally unique."
+              }
+            },
+            "chatDeploymentName": {
+              "type": "string",
+              "defaultValue": "gpt-4.1-mini",
+              "metadata": {
+                "description": "Chat model deployment name consumed by the app as AzureAI__ChatDeployment."
+              }
+            },
+            "chatModelName": {
+              "type": "string",
+              "defaultValue": "gpt-4.1-mini",
+              "metadata": {
+                "description": "Chat model name published in the Azure OpenAI catalogue."
+              }
+            },
+            "chatModelVersion": {
+              "type": "string",
+              "defaultValue": "2025-04-14",
+              "metadata": {
+                "description": "Chat model version."
+              }
+            },
+            "chatDeploymentSkuName": {
+              "type": "string",
+              "defaultValue": "GlobalStandard",
+              "metadata": {
+                "description": "Chat deployment SKU name."
+              }
+            },
+            "chatDeploymentCapacity": {
+              "type": "int",
+              "defaultValue": 20,
+              "metadata": {
+                "description": "Chat deployment capacity in thousands of tokens per minute."
+              }
+            },
+            "deployImageModel": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Set to false when the image model is not available in the target region."
+              }
+            },
+            "imageDeploymentName": {
+              "type": "string",
+              "defaultValue": "gpt-image-1-mini",
+              "metadata": {
+                "description": "Image model deployment name consumed by the app as AzureAI__ImageDeployment."
+              }
+            },
+            "imageModelName": {
+              "type": "string",
+              "defaultValue": "gpt-image-1-mini",
+              "metadata": {
+                "description": "Image model name published in the Azure OpenAI catalogue."
+              }
+            },
+            "imageModelVersion": {
+              "type": "string",
+              "defaultValue": "2025-10-06",
+              "metadata": {
+                "description": "Image model version."
+              }
+            },
+            "imageDeploymentSkuName": {
+              "type": "string",
+              "defaultValue": "GlobalStandard",
+              "metadata": {
+                "description": "Image deployment SKU name."
+              }
+            },
+            "imageDeploymentCapacity": {
+              "type": "int",
+              "defaultValue": 1,
+              "metadata": {
+                "description": "Image deployment capacity."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2025-06-01",
+              "name": "[parameters('aiFoundryAccountName')]",
+              "location": "[parameters('location')]",
+              "kind": "AIServices",
+              "sku": {
+                "name": "S0"
+              },
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "allowProjectManagement": true,
+                "customSubDomainName": "[parameters('customSubDomainName')]",
+                "publicNetworkAccess": "Enabled",
+                "disableLocalAuth": false
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', parameters('aiFoundryAccountName'), parameters('aiFoundryProjectName'))]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "displayName": "[parameters('aiFoundryProjectDisplayName')]",
+                "description": "AI Spectrum Adventure narration, NPC dialogue and retro scene generation."
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryAccountName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', parameters('aiFoundryAccountName'), parameters('chatDeploymentName'))]",
+              "sku": {
+                "name": "[parameters('chatDeploymentSkuName')]",
+                "capacity": "[parameters('chatDeploymentCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "[parameters('chatModelName')]",
+                  "version": "[parameters('chatModelVersion')]"
+                },
+                "versionUpgradeOption": "OnceNewDefaultVersionAvailable"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryAccountName'))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiFoundryAccountName'), parameters('aiFoundryProjectName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('deployImageModel')]",
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', parameters('aiFoundryAccountName'), parameters('imageDeploymentName'))]",
+              "sku": {
+                "name": "[parameters('imageDeploymentSkuName')]",
+                "capacity": "[parameters('imageDeploymentCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "[parameters('imageModelName')]",
+                  "version": "[parameters('imageModelVersion')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryAccountName'))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts/deployments', parameters('aiFoundryAccountName'), parameters('chatDeploymentName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "openAiEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI compatible endpoint consumed by AzureOpenAIClient (AzureAI__Endpoint)."
+              },
+              "value": "[format('https://{0}.openai.azure.com/', parameters('customSubDomainName'))]"
+            },
+            "aiServicesEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Generic AI Services endpoint for the account."
+              },
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryAccountName')), '2025-06-01').endpoint]"
+            },
+            "accountName": {
+              "type": "string",
+              "value": "[parameters('aiFoundryAccountName')]"
+            },
+            "accountResourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryAccountName'))]"
+            },
+            "projectName": {
+              "type": "string",
+              "value": "[parameters('aiFoundryProjectName')]"
+            },
+            "chatDeployment": {
+              "type": "string",
+              "value": "[parameters('chatDeploymentName')]"
+            },
+            "imageDeployment": {
+              "type": "string",
+              "value": "[if(parameters('deployImageModel'), parameters('imageDeploymentName'), '')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "identity-module",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "managedIdentityName": {
+            "value": "[variables('identityName')]"
+          },
+          "storageAccountResourceId": {
+            "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+          },
+          "storageAccountName": {
+            "value": "[variables('storageAccountName')]"
+          },
+          "aiFoundryAccountName": "[if(parameters('deployAiFoundry'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'ai-foundry-module'), '2025-04-01').outputs.accountName.value), createObject('value', ''))]"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "9557765047988214072"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure region for the identity resource."
+              }
+            },
+            "managedIdentityName": {
+              "type": "string",
+              "metadata": {
+                "description": "Managed identity name."
+              }
+            },
+            "storageAccountResourceId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Resource ID of the storage account. Kept for callers that pass it; the role assignment is scoped via storageAccountName."
+              }
+            },
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Storage account name used to resolve the resource for the role assignment."
+              }
+            },
+            "aiFoundryAccountName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Azure AI Foundry account name used to resolve the resource for the AI role assignments."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[parameters('managedIdentityName')]",
+              "location": "[parameters('location')]"
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), 'Storage Blob Data Contributor')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('aiFoundryAccountName')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryAccountName'))]",
+              "name": "[guid(resourceGroup().id, parameters('aiFoundryAccountName'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), 'Cognitive Services OpenAI User')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('aiFoundryAccountName')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryAccountName'))]",
+              "name": "[guid(resourceGroup().id, parameters('aiFoundryAccountName'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), 'Azure AI User')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "resourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+            },
+            "clientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2023-01-31').clientId]"
+            },
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2023-01-31').principalId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'ai-foundry-module')]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "container-app-module",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "containerAppName": {
+            "value": "[parameters('containerAppName')]"
+          },
+          "environmentName": {
+            "value": "[format('cae-{0}-{1}', variables('normalizedAppName'), variables('uniqueSuffix'))]"
+          },
+          "imageName": "[if(empty(parameters('containerImage')), createObject('value', 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'), createObject('value', parameters('containerImage')))]",
+          "registryServer": {
+            "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-07-01').loginServer]"
+          },
+          "registryUsername": {
+            "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-07-01').username]"
+          },
+          "registryPassword": {
+            "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-07-01').passwords[0].value]"
+          },
+          "managedIdentityResourceId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'identity-module'), '2025-04-01').outputs.resourceId.value]"
+          },
+          "managedIdentityClientId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'identity-module'), '2025-04-01').outputs.clientId.value]"
+          },
+          "postgresConnectionString": {
+            "value": "[format('Host={0};Database={1};Username={2};Password={3};Port=5432;Ssl Mode=Require;', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName')), '2023-06-01-preview').fullyQualifiedDomainName, variables('databaseName'), parameters('postgresAdminUsername'), parameters('postgresAdminPassword'))]"
+          },
+          "azureAiEndpoint": "[if(not(empty(parameters('azureAiEndpoint'))), createObject('value', parameters('azureAiEndpoint')), if(parameters('deployAiFoundry'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'ai-foundry-module'), '2025-04-01').outputs.openAiEndpoint.value), createObject('value', 'https://placeholder.openai.azure.com')))]",
+          "azureAiChatDeployment": {
+            "value": "[parameters('azureAiChatDeployment')]"
+          },
+          "azureAiImageDeployment": "[if(and(parameters('deployAiFoundry'), not(parameters('deployAiFoundryImageModel'))), createObject('value', ''), createObject('value', parameters('azureAiImageDeployment')))]",
+          "storageConnectionString": {
+            "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', variables('storageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').keys[0].value, environment().suffixes.storage)]"
+          },
+          "appInsightsConnectionString": "[if(empty(parameters('appInsightsConnectionString')), createObject('value', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString), createObject('value', parameters('appInsightsConnectionString')))]",
+          "logAnalyticsCustomerId": {
+            "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName')), '2022-10-01').customerId]"
+          },
+          "logAnalyticsSharedKey": {
+            "value": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName')), '2022-10-01').primarySharedKey]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "7899953664568508595"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "containerAppName": {
+              "type": "string"
+            },
+            "environmentName": {
+              "type": "string"
+            },
+            "imageName": {
+              "type": "string"
+            },
+            "registryServer": {
+              "type": "string"
+            },
+            "registryUsername": {
+              "type": "string"
+            },
+            "registryPassword": {
+              "type": "securestring"
+            },
+            "managedIdentityResourceId": {
+              "type": "string"
+            },
+            "managedIdentityClientId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Client id of the user-assigned identity, used by DefaultAzureCredential inside the container."
+              }
+            },
+            "postgresConnectionString": {
+              "type": "string"
+            },
+            "azureAiEndpoint": {
+              "type": "string"
+            },
+            "azureAiChatDeployment": {
+              "type": "string"
+            },
+            "azureAiImageDeployment": {
+              "type": "string"
+            },
+            "storageConnectionString": {
+              "type": "string"
+            },
+            "appInsightsConnectionString": {
+              "type": "string"
+            },
+            "logAnalyticsCustomerId": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "logAnalyticsSharedKey": {
+              "type": "securestring",
+              "defaultValue": ""
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2024-03-01",
+              "name": "[parameters('environmentName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "appLogsConfiguration": {
+                  "destination": "log-analytics",
+                  "logAnalyticsConfiguration": {
+                    "customerId": "[parameters('logAnalyticsCustomerId')]",
+                    "sharedKey": "[parameters('logAnalyticsSharedKey')]"
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2024-03-01",
+              "name": "[parameters('containerAppName')]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('managedIdentityResourceId'))]": {}
+                }
+              },
+              "properties": {
+                "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]",
+                "configuration": {
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 8080,
+                    "allowInsecure": false,
+                    "transport": "auto"
+                  },
+                  "registries": [
+                    {
+                      "server": "[parameters('registryServer')]",
+                      "username": "[parameters('registryUsername')]",
+                      "passwordSecretRef": "acr-password"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "acr-password",
+                      "value": "[parameters('registryPassword')]"
+                    },
+                    {
+                      "name": "postgres-connection",
+                      "value": "[parameters('postgresConnectionString')]"
+                    },
+                    {
+                      "name": "storage-connection",
+                      "value": "[parameters('storageConnectionString')]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "[parameters('containerAppName')]",
+                      "image": "[parameters('imageName')]",
+                      "env": [
+                        {
+                          "name": "ASPNETCORE_ENVIRONMENT",
+                          "value": "Production"
+                        },
+                        {
+                          "name": "ConnectionStrings__AdventureDb",
+                          "secretRef": "postgres-connection"
+                        },
+                        {
+                          "name": "AzureAI__Endpoint",
+                          "value": "[parameters('azureAiEndpoint')]"
+                        },
+                        {
+                          "name": "AzureAI__ChatDeployment",
+                          "value": "[parameters('azureAiChatDeployment')]"
+                        },
+                        {
+                          "name": "AzureAI__ImageDeployment",
+                          "value": "[parameters('azureAiImageDeployment')]"
+                        },
+                        {
+                          "name": "AzureStorage__ConnectionString",
+                          "secretRef": "storage-connection"
+                        },
+                        {
+                          "name": "ApplicationInsights__ConnectionString",
+                          "value": "[parameters('appInsightsConnectionString')]"
+                        },
+                        {
+                          "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                          "value": "[parameters('appInsightsConnectionString')]"
+                        },
+                        {
+                          "name": "AZURE_CLIENT_ID",
+                          "value": "[parameters('managedIdentityClientId')]"
+                        }
+                      ],
+                      "resources": {
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
+                      }
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 1,
+                    "maxReplicas": 2
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "url": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', parameters('containerAppName')), '2024-03-01').configuration.ingress.fqdn)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'ai-foundry-module')]",
+        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('acrName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
+        "[resourceId('Microsoft.Resources/deployments', 'identity-module')]",
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "containerAppUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-app-module'), '2025-04-01').outputs.url.value]"
+    },
+    "acRLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-07-01').loginServer]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
+    },
+    "postgresServerName": {
+      "type": "string",
+      "value": "[variables('postgresServerName')]"
+    },
+    "appInsightsConnectionString": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString]"
+    },
+    "azureAiEndpoint": {
+      "type": "string",
+      "value": "[if(not(empty(parameters('azureAiEndpoint'))), parameters('azureAiEndpoint'), if(parameters('deployAiFoundry'), reference(resourceId('Microsoft.Resources/deployments', 'ai-foundry-module'), '2025-04-01').outputs.openAiEndpoint.value, 'https://placeholder.openai.azure.com'))]"
+    },
+    "aiFoundryAccountName": {
+      "type": "string",
+      "value": "[if(parameters('deployAiFoundry'), reference(resourceId('Microsoft.Resources/deployments', 'ai-foundry-module'), '2025-04-01').outputs.accountName.value, '')]"
+    },
+    "aiFoundryProjectName": {
+      "type": "string",
+      "value": "[if(parameters('deployAiFoundry'), reference(resourceId('Microsoft.Resources/deployments', 'ai-foundry-module'), '2025-04-01').outputs.projectName.value, '')]"
+    },
+    "managedIdentityClientId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'identity-module'), '2025-04-01').outputs.clientId.value]"
+    }
+  }
+}

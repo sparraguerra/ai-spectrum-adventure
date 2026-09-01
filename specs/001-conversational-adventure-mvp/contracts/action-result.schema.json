@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action-result.schema.json",
+  "title": "ActionResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gameId", "success", "narrative", "sceneChanged"],
+  "properties": {
+    "gameId": { "type": "string", "format": "uuid" },
+    "success": { "type": "boolean" },
+    "reason": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "ItemNotInInventory",
+        "NoSuchExit",
+        "ExitConditionNotMet",
+        "TargetNotPresent",
+        "AlreadyInState",
+        "PuzzleConditionNotMet",
+        "AmbiguousIntent",
+        "UnknownAction",
+        "ImpossibleAction"
+      ]
+    },
+    "narrative": { "type": "string", "minLength": 1 },
+    "sceneChanged": { "type": "boolean" },
+    "currentLocationId": { "type": "string" },
+    "inventoryItemIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "visualAssetUrl": { "type": ["string", "null"] }
+  }
+}

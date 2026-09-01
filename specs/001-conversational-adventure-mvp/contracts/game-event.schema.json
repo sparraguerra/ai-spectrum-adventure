@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "game-event.schema.json",
+  "title": "GameEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "kind", "occurredAt", "payload"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "PlayerMoved",
+        "ItemTaken",
+        "ItemUsed",
+        "ObjectStateChanged",
+        "DoorOpened",
+        "NpcRelationshipChanged",
+        "PuzzleSolved",
+        "LocationDiscovered"
+      ]
+    },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "payload": {
+      "type": "object",
+      "description": "Kind-specific fields (e.g., fromLocationId/toLocationId for PlayerMoved, itemId/locationId for ItemTaken). Validated per-kind by the Domain layer, not by this generic schema.",
+      "additionalProperties": true
+    }
+  }
+}

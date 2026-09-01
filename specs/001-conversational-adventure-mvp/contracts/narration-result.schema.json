@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "narration-result.schema.json",
+  "title": "NarrationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["narration", "sceneChanged"],
+  "properties": {
+    "narration": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "mood": { "type": "string" },
+    "sceneChanged": { "type": "boolean" },
+    "importantEvents": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Free-text highlights the Narrator considers noteworthy; informational only, MUST NOT be used to mutate GameState."
+    }
+  }
+}

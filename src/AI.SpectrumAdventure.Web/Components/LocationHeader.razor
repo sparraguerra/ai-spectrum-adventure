@@ -1,0 +1,26 @@
+@using AI.SpectrumAdventure.Contracts
+@using AI.SpectrumAdventure.Domain.Games
+
+@if (Game is not null)
+{
+    <div>
+        <p class="text-uppercase text-muted mb-2">Current location</p>
+        <h1 class="mb-3">@Game.CurrentLocation.Name</h1>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            @foreach (var exit in Game.CurrentLocation.Exits)
+            {
+                <span class="badge bg-dark-subtle text-dark border">@exit.Direction</span>
+            }
+        </div>
+        @if (Result is not null)
+        {
+            <small class="text-muted">@Result.CurrentLocationId</small>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Game? Game { get; set; }
+
+    [Parameter] public ActionResult? Result { get; set; }
+}

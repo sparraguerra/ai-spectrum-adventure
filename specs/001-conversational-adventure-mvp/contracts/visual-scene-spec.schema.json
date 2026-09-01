@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "visual-scene-spec.schema.json",
+  "title": "VisualSceneSpec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["locationId", "sceneStateKey", "objects", "mood", "style"],
+  "properties": {
+    "locationId": { "type": "string" },
+    "sceneStateKey": {
+      "type": "string",
+      "description": "Deterministic cache key (locationId + relevant world flags) used by the ImagePipeline to avoid regenerating unchanged scenes (Decision 5/9)."
+    },
+    "timeOfDay": { "type": "string" },
+    "objects": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 12
+    },
+    "mood": { "type": "string" },
+    "style": {
+      "type": "string",
+      "const": "ZX Spectrum inspired 8-bit game art"
+    }
+  }
+}

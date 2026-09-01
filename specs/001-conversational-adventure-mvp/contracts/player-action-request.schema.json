@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "player-action-request.schema.json",
+  "title": "PlayerActionRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gameId", "rawInput", "submittedAt"],
+  "properties": {
+    "gameId": { "type": "string", "format": "uuid" },
+    "rawInput": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "submittedAt": { "type": "string", "format": "date-time" }
+  }
+}

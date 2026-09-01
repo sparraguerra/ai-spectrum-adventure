@@ -1,0 +1,90 @@
+name: Deploy AI Spectrum Adventure
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run tests
+        run: dotnet test --nologo --configuration Release
+
+      - name: Build container image
+        run: docker build -t ai-spectrum-adventure:${{ github.sha }} .
+
+  deploy:
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure Azure CLI
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            az account show
+            az group show --name rg-ai-spectrum-adventure --output table || az group create --name rg-ai-spectrum-adventure --location francecentral
+
+      - name: Build and push image to ACR
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            az acr build \
+              --registry spectrumadventure${{ secrets.ACR_SUFFIX || 'unique' }} \
+              --image ai-spectrum-adventure:${{ github.sha }} \
+              --file Dockerfile .
+
+      - name: Deploy infrastructure and app
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            az deployment group create \
+              --resource-group rg-ai-spectrum-adventure \
+              --template-file infra/main.bicep \
+              --parameters \
+                location=francecentral \
+                appName=spectrum-adventure \
+                containerAppName=spectrum-adventure-web \
+                containerImage=spectrumadventure${{ secrets.ACR_SUFFIX || 'unique' }}.azurecr.io/ai-spectrum-adventure:${{ github.sha }} \
+                postgresAdminUsername=pgadmin \
+                postgresAdminPassword='${{ secrets.POSTGRES_PASSWORD }}' \
+                deployAiFoundry=${{ vars.DEPLOY_AI_FOUNDRY || 'true' }} \
+                aiFoundryLocation='${{ vars.AZURE_AI_LOCATION || 'swedencentral' }}' \
+                deployAiFoundryImageModel=${{ vars.DEPLOY_AI_IMAGE_MODEL || 'true' }} \
+                azureAiEndpoint='${{ secrets.AZURE_AI_ENDPOINT }}' \
+                azureAiChatDeployment='${{ vars.AZURE_AI_CHAT_DEPLOYMENT || 'gpt-4o-mini' }}' \
+                azureAiChatModelName='${{ vars.AZURE_AI_CHAT_MODEL || 'gpt-4o-mini' }}' \
+                azureAiChatModelVersion='${{ vars.AZURE_AI_CHAT_MODEL_VERSION || '2024-07-18' }}' \
+                azureAiImageDeployment='${{ vars.AZURE_AI_IMAGE_DEPLOYMENT || 'dall-e-3' }}' \
+                azureAiImageModelName='${{ vars.AZURE_AI_IMAGE_MODEL || 'dall-e-3' }}' \
+                azureAiImageModelVersion='${{ vars.AZURE_AI_IMAGE_MODEL_VERSION || '3.0' }}' \
+                appInsightsConnectionString='${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}'
+
+      - name: Smoke test
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            APP_URL=$(az containerapp show --name spectrum-adventure-web --resource-group rg-ai-spectrum-adventure --query properties.configuration.ingress.fqdn -o tsv)
+            echo "Smoke test URL: https://$APP_URL/health"
+            curl -fsS "https://$APP_URL/health"

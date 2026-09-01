@@ -1,0 +1,25 @@
+@using AI.SpectrumAdventure.Domain.Games
+
+@if (Game is not null)
+{
+    <div>
+        <h2 class="h5 mb-3">Inventory</h2>
+        @if (Game.Player.Inventory.Items.Count == 0)
+        {
+            <p class="text-muted mb-0">Your hands are empty.</p>
+        }
+        else
+        {
+            <ul class="list-unstyled mb-0">
+                @foreach (var itemId in Game.Player.Inventory.Items)
+                {
+                    <li class="border-bottom pb-2 mb-2">@Game.GetItem(itemId).Name</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Game? Game { get; set; }
+}

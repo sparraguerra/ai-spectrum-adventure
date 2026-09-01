@@ -1,0 +1,29 @@
+@using AI.SpectrumAdventure.Domain.Games
+
+@if (Game is not null)
+{
+    <div>
+        <h2 class="h5 mb-3">NPCs</h2>
+        @if (Game.CurrentLocation.NpcIds.Count == 0)
+        {
+            <p class="text-muted mb-0">No one is here to talk to.</p>
+        }
+        else
+        {
+            <ul class="list-unstyled mb-0">
+                @foreach (var npcId in Game.CurrentLocation.NpcIds)
+                {
+                    var npc = Game.GetNpc(npcId);
+                    <li class="border-bottom pb-2 mb-2">
+                        <strong>@npc.Name</strong>
+                        <div class="small text-muted">@npc.PersonalityProfile</div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Game? Game { get; set; }
+}
