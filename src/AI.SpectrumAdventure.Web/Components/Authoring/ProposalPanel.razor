@@ -1,0 +1,80 @@
+@using System.Text.Json
+@using AI.SpectrumAdventure.Application.Authoring
+@using AI.SpectrumAdventure.Domain.Authoring
+@inject ProposalUseCases Proposals
+
+<section aria-label="AI proposal review">
+    <h2>AI proposal review</h2>
+    <InputTextArea @bind-Value="Request" placeholder="Describe an authoring change" rows="3" />
+    <button type="button" @onclick="RequestAsync" disabled="@(DraftId is null || IsBusy)">Request proposal</button>
+
+    @if (Proposal is not null)
+    {
+        <p>Proposal status: @Proposal.Status</p>
+        <InputTextArea @bind-Value="PatchJson" rows="6" aria-label="Proposal patch JSON" />
+        <button type="button" @onclick="EditAsync" disabled="@IsBusy">Save proposal edit</button>
+        <button type="button" @onclick="AcceptAsync" disabled="@IsBusy || Proposal.Status != ProposalStatus.Pending">Accept proposal</button>
+        <button type="button" @onclick="RejectAsync" disabled="@IsBusy || Proposal.Status != ProposalStatus.Pending">Reject proposal</button>
+    }
+
+    @if (Message is not null) { <p role="status">@Message</p> }
+    @if (Issues.Count > 0) { <ul>@foreach (var issue in Issues) { <li>@issue</li> }</ul> }
+</section>
+
+@code {
+    [Parameter] public AdventureDraftId? DraftId { get; set; }
+    [Parameter] public long Revision { get; set; }
+    private string Request { get; set; } = string.Empty;
+    private string PatchJson { get; set; } = "{\"operations\":[]}";
+    private AuthoringProposal? Proposal;
+    private bool IsBusy;
+    private string? Message;
+    private IReadOnlyList<string> Issues { get; set; } = [];
+
+    private async Task RequestAsync()
+    {
+        if (DraftId is null || string.IsNullOrWhiteSpace(Request)) return;
+        await RunAsync(async () =>
+        {
+            var result = await Proposals.RequestAsync(DraftId.Value, Request);
+            SetResult(result);
+        });
+    }
+
+    private async Task EditAsync()
+    {
+        if (Proposal is null) return;
+        await RunAsync(async () =>
+        {
+            var patch = JsonSerializer.Deserialize<JsonElement>(PatchJson);
+            SetResult(await Proposals.EditAsync(Proposal, patch));
+        });
+    }
+
+    private async Task AcceptAsync()
+    {
+        if (Proposal is null) return;
+        await RunAsync(async () => SetResult(await Proposals.AcceptAsync(Proposal, Revision)));
+    }
+
+    private async Task RejectAsync()
+    {
+        if (Proposal is null) return;
+        await RunAsync(async () => SetResult(await Proposals.RejectAsync(Proposal)));
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        IsBusy = true; Issues = [];
+        try { await action(); } catch (Exception exception) { Message = exception.Message; }
+        finally { IsBusy = false; }
+    }
+
+    private void SetResult(ProposalUseCaseResult result)
+    {
+        Proposal = result.Proposal ?? Proposal;
+        PatchJson = Proposal?.PatchJson ?? PatchJson;
+        Issues = result.Errors;
+        Message = result.Succeeded ? "Proposal updated." : "Proposal was not applied.";
+    }
+}

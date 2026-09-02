@@ -1,0 +1,128 @@
+@page "/authoring/adventure"
+@rendermode InteractiveServer
+@inject DraftUseCases Drafts
+@inject PublishAdventureUseCase Publisher
+
+<PageTitle>Adventure Editor</PageTitle>
+
+<h1>Adventure Editor</h1>
+<p><a href="/docs/adventure-authoring-guide.md">Read the adventure authoring guide</a></p>
+
+<EditForm Model="model" OnValidSubmit="SaveDraftAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <label for="identifier">Identifier</label>
+    <InputText id="identifier" @bind-Value="model.Identifier" />
+
+    <label for="title">Title</label>
+    <InputText id="title" @bind-Value="model.Title" />
+
+    <label for="starting-location">Starting location</label>
+    <InputText id="starting-location" @bind-Value="model.StartingLocationId" />
+
+    <label for="definition">Definition JSON</label>
+    <InputTextArea id="definition" @bind-Value="model.DefinitionJson" rows="12" />
+
+    <button type="submit">@(draftId is null ? "Create draft" : "Save draft")</button>
+    <button type="button" @onclick="LoadDraftAsync">Reopen draft</button>
+    <button type="button" @onclick="PublishAsync" disabled="@(draftId is null)">Validate and publish</button>
+</EditForm>
+
+<LocationEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<ConnectionEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<ItemEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<StartLocationEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<NpcEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<LoreEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<PuzzleEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<SolutionEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<ChainEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+<PlaytestPanel DraftId="@draftId" Revision="@revision" />
+<ProposalPanel DraftId="@draftId" Revision="@revision" />
+<VersionHistoryPanel DraftId="@draftId" />
+<AdventurePreview LocationId="@model.StartingLocationId" LocationName="@model.Title" />
+
+@if (message is not null)
+{
+    <p role="status">@message</p>
+}
+
+@if (validationIssues.Count > 0)
+{
+    <section aria-label="Validation results">
+        <h2>Validation results</h2>
+        <ul>
+            @foreach (var issue in validationIssues)
+            {
+                <li><strong>@issue.Element</strong>: @issue.Reason</li>
+            }
+        </ul>
+    </section>
+}
+
+@code {
+    private readonly EditorModel model = new();
+    private AdventureDraftId? draftId;
+    private long revision;
+    private string? message;
+    private IReadOnlyList<AuthoringValidationIssue> validationIssues = [];
+
+    private Task SetDefinition(string definition)
+    {
+        model.DefinitionJson = definition;
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveDraftAsync()
+    {
+        var request = new AdventureDraftRequest(model.Identifier, model.Title, model.StartingLocationId, model.DefinitionJson);
+        var result = draftId is null
+            ? await Drafts.CreateAsync(request)
+            : await Drafts.SaveAsync(draftId.Value, revision, request);
+
+        message = result.Succeeded
+            ? "Draft saved."
+            : string.Join(" ", result.Errors);
+
+        if (result.Draft is not null && result.Succeeded)
+        {
+            draftId = result.Draft.Id;
+            revision = result.Draft.Revision;
+        }
+    }
+
+    private async Task LoadDraftAsync()
+    {
+        var result = await Drafts.LoadAsync(model.Identifier);
+        message = result.Succeeded ? "Draft reopened." : string.Join(" ", result.Errors);
+        if (!result.Succeeded || result.Draft is null)
+        {
+            return;
+        }
+
+        draftId = result.Draft.Id;
+        revision = result.Draft.Revision;
+        model.Title = result.Draft.Title;
+        model.StartingLocationId = result.Draft.StartingLocationId;
+        model.DefinitionJson = result.Draft.DefinitionJson;
+    }
+
+    private async Task PublishAsync()
+    {
+        if (draftId is null) return;
+        var result = await Publisher.ExecuteAsync(draftId.Value, revision);
+        validationIssues = result.Validation.Issues;
+        message = result.Published
+            ? $"Published version {result.VersionSequence}."
+            : string.Join(" ", result.Issues);
+    }
+
+    private sealed class EditorModel
+    {
+        public string Identifier { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string StartingLocationId { get; set; } = string.Empty;
+        public string DefinitionJson { get; set; } = "{}";
+    }
+}

@@ -1,6 +1,7 @@
 namespace AI.SpectrumAdventure.Domain.Games;
 
 using AI.SpectrumAdventure.Domain.Common;
+using AI.SpectrumAdventure.Domain.Authoring;
 using AI.SpectrumAdventure.Domain.Events;
 using AI.SpectrumAdventure.Domain.Items;
 using AI.SpectrumAdventure.Domain.Locations;
@@ -23,6 +24,7 @@ public sealed class Game
     public GameId Id { get; }
     public WorldId? WorldId { get; private set; }
     public string AdventureId { get; }
+    public AdventureVersionId? AdventureVersionId { get; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public Player Player { get; }
@@ -52,11 +54,13 @@ public sealed class Game
         string adventureId = AdventureWorldFactory.DefaultAdventureId,
         WorldId? worldId = null,
         PlayerKnowledge? playerKnowledge = null,
-        IEnumerable<Puzzle>? puzzles = null)
+        IEnumerable<Puzzle>? puzzles = null,
+        AdventureVersionId? adventureVersionId = null)
     {
         Id = id;
         WorldId = worldId;
         AdventureId = adventureId;
+        AdventureVersionId = adventureVersionId;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
         Player = player;
@@ -219,7 +223,8 @@ public sealed class Game
         [.. EventHistory.Select(GameEventSnapshotMapper.ToSnapshot)],
         WorldId?.Value.ToString(),
         PlayerKnowledge.ToSnapshot(),
-        [.. Puzzles.Select(ToSnapshot)]);
+        [.. Puzzles.Select(ToSnapshot)],
+        AdventureVersionId?.Value);
 
     /// <summary>Persistence-boundary import: reconstructs a full Game aggregate from a previously exported snapshot.</summary>
     public static Game FromSnapshot(GameSnapshot snapshot)
@@ -286,7 +291,7 @@ public sealed class Game
         }
 
         WorldId? worldId = Guid.TryParse(snapshot.WorldId, out var worldGuid) ? new WorldId(worldGuid) : null;
-        var game = new Game(new GameId(snapshot.Id), snapshot.CreatedAt, player, locations, items, npcs, puzzle, snapshot.AdventureId ?? AdventureWorldFactory.DefaultAdventureId, worldId, PlayerKnowledge.FromSnapshot(snapshot.PlayerKnowledge), puzzles);
+        var game = new Game(new GameId(snapshot.Id), snapshot.CreatedAt, player, locations, items, npcs, puzzle, snapshot.AdventureId ?? AdventureWorldFactory.DefaultAdventureId, worldId, PlayerKnowledge.FromSnapshot(snapshot.PlayerKnowledge), puzzles, snapshot.AdventureVersionId is null ? null : new AdventureVersionId(snapshot.AdventureVersionId.Value));
         game.RehydrateWorldFlagsAndHistory(
             snapshot.WorldFlags.Select(f => new WorldFlag(f.Key, f.SetAt)),
             snapshot.EventHistory.Select(GameEventSnapshotMapper.FromSnapshot),

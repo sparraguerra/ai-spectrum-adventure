@@ -20,6 +20,11 @@ public sealed class AdventureDbContext(DbContextOptions<AdventureDbContext> opti
     public DbSet<LoreRecord> WorldLore => Set<LoreRecord>();
     public DbSet<WorldNpcStateRecord> WorldNpcStates => Set<WorldNpcStateRecord>();
     public DbSet<WorldPuzzleRecord> WorldPuzzles => Set<WorldPuzzleRecord>();
+    public DbSet<AdventureDraftRecord> AdventureDrafts => Set<AdventureDraftRecord>();
+    public DbSet<AdventureVersionRecord> AdventureVersions => Set<AdventureVersionRecord>();
+    public DbSet<AuthoringProposalRecord> AuthoringProposals => Set<AuthoringProposalRecord>();
+    public DbSet<AuthoringAuditEntryRecord> AuthoringAuditEntries => Set<AuthoringAuditEntryRecord>();
+    public DbSet<PlaytestSessionRecord> PlaytestSessions => Set<PlaytestSessionRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

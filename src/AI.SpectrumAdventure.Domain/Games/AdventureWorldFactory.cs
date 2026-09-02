@@ -39,15 +39,18 @@ public static class AdventureWorldFactory
     public static Game CreateNewGame(GameId id, DateTimeOffset createdAt) =>
         CreateNewGame(id, createdAt, DefaultAdventureId);
 
-    public static Game CreateNewGame(GameId id, DateTimeOffset createdAt, string adventureId) =>
-        CreateFromDefinition(id, createdAt, LoadDefinition(adventureId));
+    public static Game CreateNewGame(GameId id, DateTimeOffset createdAt, AI.SpectrumAdventure.Domain.Authoring.AdventureVersionId? adventureVersionId) =>
+        CreateNewGame(id, createdAt, DefaultAdventureId, adventureVersionId);
 
-    public static Game CreateNewGameFromJson(GameId id, DateTimeOffset createdAt, string json)
+    public static Game CreateNewGame(GameId id, DateTimeOffset createdAt, string adventureId, AI.SpectrumAdventure.Domain.Authoring.AdventureVersionId? adventureVersionId = null) =>
+        CreateFromDefinition(id, createdAt, LoadDefinition(adventureId), adventureVersionId);
+
+    public static Game CreateNewGameFromJson(GameId id, DateTimeOffset createdAt, string json, AI.SpectrumAdventure.Domain.Authoring.AdventureVersionId? adventureVersionId = null)
     {
         var definition = JsonSerializer.Deserialize<AdventureDefinition>(json, SerializerOptions)
             ?? throw new InvalidOperationException("Adventure JSON is empty or invalid.");
 
-        return CreateFromDefinition(id, createdAt, definition);
+        return CreateFromDefinition(id, createdAt, definition, adventureVersionId);
     }
 
     private static AdventureDefinition LoadDefinition(string adventureId)
@@ -63,7 +66,7 @@ public static class AdventureWorldFactory
             ?? throw new InvalidOperationException($"Adventure definition '{adventureId}' is empty or invalid.");
     }
 
-    private static Game CreateFromDefinition(GameId id, DateTimeOffset createdAt, AdventureDefinition definition)
+    private static Game CreateFromDefinition(GameId id, DateTimeOffset createdAt, AdventureDefinition definition, AI.SpectrumAdventure.Domain.Authoring.AdventureVersionId? adventureVersionId = null)
     {
         Validate(definition);
 
@@ -116,7 +119,8 @@ public static class AdventureWorldFactory
             npcs,
             puzzle,
             definition.Id,
-            puzzles: puzzles);
+            puzzles: puzzles,
+            adventureVersionId: adventureVersionId);
     }
 
     private static ItemState ParseItemState(IEnumerable<string> states)

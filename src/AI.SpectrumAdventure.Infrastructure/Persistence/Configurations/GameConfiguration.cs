@@ -10,6 +10,7 @@ public sealed class GameConfiguration : IEntityTypeConfiguration<GameRecord>
     {
         builder.ToTable("games");
         builder.HasKey(g => g.Id);
+        builder.HasIndex(g => g.AdventureVersionId);
         builder.Property(g => g.Json).HasColumnType("jsonb").IsRequired();
         builder.Property(g => g.ConcurrencyToken).IsConcurrencyToken();
     }

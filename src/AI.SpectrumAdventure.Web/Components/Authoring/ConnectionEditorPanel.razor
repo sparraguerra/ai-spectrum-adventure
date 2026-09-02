@@ -1,0 +1,25 @@
+<section aria-labelledby="connection-editor-heading">
+    <h2 id="connection-editor-heading">Connections</h2>
+    <EditForm Model="connection" OnValidSubmit="SaveAsync">
+        <InputText @bind-Value="connection.Source" placeholder="Source location id" />
+        <InputText @bind-Value="connection.Direction" placeholder="Direction" />
+        <InputText @bind-Value="connection.Destination" placeholder="Destination location id" />
+        <button type="submit">Add or update connection</button>
+    </EditForm>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string DefinitionJson { get; set; } = "{}";
+    [Parameter] public EventCallback<string> OnDefinitionChanged { get; set; }
+    private ConnectionModel connection = new();
+
+    private Task SaveAsync() => OnDefinitionChanged.InvokeAsync(DraftDefinitionEditor.UpsertConnection(DefinitionJson,
+        connection.Source, new AuthoringExit(connection.Direction, connection.Destination)));
+
+    private sealed class ConnectionModel
+    {
+        public string Source { get; set; } = string.Empty;
+        public string Direction { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+    }
+}

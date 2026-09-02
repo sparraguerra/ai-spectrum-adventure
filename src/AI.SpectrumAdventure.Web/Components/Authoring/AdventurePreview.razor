@@ -1,0 +1,46 @@
+@using AI.SpectrumAdventure.Application.Authoring
+@using AI.SpectrumAdventure.Contracts
+@inject AuthoringPreviewService Preview
+
+<section aria-label="Adventure preview">
+    <h2>Retro preview</h2>
+    <button type="button" @onclick="RenderAsync" disabled="@IsRendering">
+        @(IsRendering ? "Rendering..." : "Render preview")
+    </button>
+    @if (Result is not null)
+    {
+        <p role="status">@Result.FactualSummary</p>
+        @if (Result.ImageBytes is not null)
+        {
+            <img alt="Optional retro preview" src="data:image/png;base64,@Convert.ToBase64String(Result.ImageBytes)" />
+        }
+        @if (Result.UsedFallback)
+        {
+            <p>Preview unavailable; factual scene details remain available.</p>
+        }
+    }
+</section>
+
+@code {
+    [Parameter] public string LocationId { get; set; } = "start";
+    [Parameter] public string LocationName { get; set; } = "Starting location";
+    [Parameter] public string Mood { get; set; } = "neutral";
+    [Parameter] public string SceneStateKey { get; set; } = "authoring-preview";
+    [Parameter] public IReadOnlyCollection<string> VisibleObjectNames { get; set; } = [];
+
+    private AdventurePreviewResult? Result;
+    private bool IsRendering;
+
+    private async Task RenderAsync()
+    {
+        IsRendering = true;
+        try
+        {
+            Result = await Preview.CreateAsync(new VisualContext(LocationId, LocationName, VisibleObjectNames, Mood, SceneStateKey));
+        }
+        finally
+        {
+            IsRendering = false;
+        }
+    }
+}

@@ -1,0 +1,25 @@
+<section aria-labelledby="location-editor-heading">
+    <h2 id="location-editor-heading">Locations</h2>
+    <EditForm Model="location" OnValidSubmit="SaveAsync">
+        <InputText @bind-Value="location.Id" placeholder="Location id" />
+        <InputText @bind-Value="location.Name" placeholder="Name" />
+        <InputTextArea @bind-Value="location.Description" placeholder="Description" />
+        <button type="submit">Add or update location</button>
+    </EditForm>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string DefinitionJson { get; set; } = "{}";
+    [Parameter] public EventCallback<string> OnDefinitionChanged { get; set; }
+    private AuthoringLocationModel location = new();
+
+    private Task SaveAsync() => OnDefinitionChanged.InvokeAsync(DraftDefinitionEditor.UpsertLocation(DefinitionJson,
+        new AuthoringLocation(location.Id, location.Name, location.Description)));
+
+    private sealed class AuthoringLocationModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+}

@@ -3,9 +3,11 @@ using AI.SpectrumAdventure.Agents.ImagePipeline;
 using AI.SpectrumAdventure.Agents.Narrator;
 using AI.SpectrumAdventure.Agents.Npc;
 using AI.SpectrumAdventure.Agents.WorldEnrichment;
+using AI.SpectrumAdventure.Agents.Authoring;
 using AI.SpectrumAdventure.Agents.Intent;
 using AI.SpectrumAdventure.Agents.VisualArtDirector;
 using AI.SpectrumAdventure.Application.Abstractions;
+using AI.SpectrumAdventure.Application.Authoring;
 using AI.SpectrumAdventure.Application.Lore;
 using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Infrastructure.Persistence;
@@ -70,6 +72,14 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddDbContext<AdventureDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("AdventureDb")));
 builder.Services.AddScoped<IGameRepository, EfGameRepository>();
+builder.Services.AddScoped<IAdventureAuthoringRepository, EfAdventureAuthoringRepository>();
+builder.Services.AddSingleton<IAdventureValidator, AdventureAuthoringValidator>();
+builder.Services.AddScoped<DraftUseCases>();
+builder.Services.AddScoped<PublishAdventureUseCase>();
+builder.Services.AddScoped<VersionHistoryUseCases>();
+builder.Services.AddScoped<StartPlaytestUseCase>();
+builder.Services.AddScoped<ProposalUseCases>();
+builder.Services.AddScoped<AuthoringPreviewService>();
 builder.Services.AddScoped<IWorldRepository, EfWorldRepository>();
 builder.Services.AddSingleton<WorldGenerator>();
 builder.Services.AddSingleton<IRegionGenerator>(sp => sp.GetRequiredService<WorldGenerator>());
@@ -112,6 +122,7 @@ builder.Services.AddSingleton<IAgentRunner>(sp =>
 builder.Services.AddSingleton<INarratorAgent, NarratorAgent>();
 builder.Services.AddSingleton<INpcAgent, NpcAgent>();
 builder.Services.AddSingleton<IVisualArtDirector, VisualArtDirectorAgent>();
+builder.Services.AddSingleton<IAuthoringProposalAgent, AuthoringProposalAgent>();
 
 // Image pipeline (Phase 13/14): async, non-blocking generation with retro post-processing and Azure Blob storage.
 builder.Services.AddSingleton<ImageGenerationQueue>();

@@ -57,6 +57,7 @@ public sealed class EfGameRepository(AdventureDbContext dbContext) : IGameReposi
                 dbContext.Games.Add(new GameRecord
                 {
                     Id = game.Id.Value,
+                    AdventureVersionId = game.AdventureVersionId?.Value,
                     Json = json,
                     CreatedAt = game.CreatedAt,
                     UpdatedAt = game.UpdatedAt,
@@ -66,6 +67,7 @@ public sealed class EfGameRepository(AdventureDbContext dbContext) : IGameReposi
             else
             {
                 existing.Json = json;
+                existing.AdventureVersionId = game.AdventureVersionId?.Value;
                 existing.UpdatedAt = game.UpdatedAt;
                 existing.ConcurrencyToken = Guid.NewGuid();
             }

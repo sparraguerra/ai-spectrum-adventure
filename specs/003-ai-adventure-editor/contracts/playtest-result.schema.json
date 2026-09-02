@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","title":"PlaytestResult","type":"object","additionalProperties":false,"required":["started","gameId","issues"],"properties":{"started":{"type":"boolean"},"gameId":{"type":["string","null"]},"issues":{"type":"array","items":{"type":"string"}}}}

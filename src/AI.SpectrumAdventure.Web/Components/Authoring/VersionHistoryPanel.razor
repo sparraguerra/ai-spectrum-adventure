@@ -1,0 +1,79 @@
+@inject VersionHistoryUseCases History
+
+@if (DraftId is not null)
+{
+    <section aria-label="Published version history">
+        <h2>Published versions</h2>
+        <button type="button" @onclick="LoadHistoryAsync">Inspect history</button>
+
+        @if (versions.Count > 0)
+        {
+            <ul>
+                @foreach (var version in versions)
+                {
+                    <li>
+                        <strong>Version @version.Sequence</strong>
+                        <span>@version.PublishedAt.ToLocalTime()</span>
+                        <details>
+                            <summary>Inspect definition</summary>
+                            <pre>@version.DefinitionJson</pre>
+                        </details>
+                        <button type="button" @onclick="() => SelectVersion(version.Id)">Restore</button>
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (selectedVersion is not null)
+        {
+            <EditForm Model="restoreModel" OnValidSubmit="RestoreAsync">
+                <label for="restore-identifier">New adventure identifier</label>
+                <InputText id="restore-identifier" @bind-Value="restoreModel.Identifier" />
+                <label for="restore-title">New draft title</label>
+                <InputText id="restore-title" @bind-Value="restoreModel.Title" />
+                <button type="submit">Restore as new draft</button>
+            </EditForm>
+        }
+    </section>
+}
+
+@if (message is not null)
+{
+    <p role="status">@message</p>
+}
+
+@code {
+    [Parameter] public AdventureDraftId? DraftId { get; set; }
+
+    private IReadOnlyList<AdventureVersion> versions = [];
+    private AdventureVersion? selectedVersion;
+    private readonly RestoreModel restoreModel = new();
+    private string? message;
+
+    private async Task LoadHistoryAsync()
+    {
+        if (DraftId is null) return;
+        versions = await History.GetHistoryAsync(DraftId.Value);
+        message = versions.Count == 0 ? "No published versions found." : $"Loaded {versions.Count} published version(s).";
+    }
+
+    private void SelectVersion(AdventureVersionId versionId)
+    {
+        selectedVersion = versions.Single(version => version.Id == versionId);
+        restoreModel.Title = $"Restored version {selectedVersion.Sequence}";
+        message = $"Version {selectedVersion.Sequence} selected for inspection or restoration.";
+    }
+
+    private async Task RestoreAsync()
+    {
+        if (DraftId is null || selectedVersion is null) return;
+        var result = await History.RestoreAsNewDraftAsync(DraftId.Value, selectedVersion.Id, restoreModel.Identifier, restoreModel.Title);
+        message = result.Succeeded ? $"Restored version {selectedVersion.Sequence} as a new draft." : string.Join(" ", result.Errors);
+    }
+
+    private sealed class RestoreModel
+    {
+        public string Identifier { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+    }
+}

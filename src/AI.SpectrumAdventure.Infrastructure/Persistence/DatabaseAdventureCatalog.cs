@@ -3,6 +3,7 @@ namespace AI.SpectrumAdventure.Infrastructure.Persistence;
 using System.Text.Json;
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Application.Games;
+using AI.SpectrumAdventure.Domain.Authoring;
 using Microsoft.EntityFrameworkCore;
 
 public sealed class DatabaseAdventureCatalog(AdventureDbContext? dbContext, string localAdventureDirectory) : IAdventureCatalog
@@ -24,10 +25,22 @@ public sealed class DatabaseAdventureCatalog(AdventureDbContext? dbContext, stri
     }
 
     public async Task<string> GetDefinitionJsonAsync(string adventureId, CancellationToken cancellationToken = default)
+        => (await GetDefinitionAsync(adventureId, cancellationToken: cancellationToken)).DefinitionJson;
+
+    public async Task<AdventureCatalogDefinition> GetDefinitionAsync(string adventureId, AdventureVersionId? versionId = null, CancellationToken cancellationToken = default)
     {
         if (dbContext is not null)
         {
             await SeedFromLocalFilesWhenEmptyAsync(cancellationToken);
+
+            var versions = dbContext.AdventureVersions.AsNoTracking().Where(version => version.AdventureIdentifier == adventureId);
+            var selectedVersion = versionId is null
+                ? await versions.OrderByDescending(version => version.Sequence).FirstOrDefaultAsync(cancellationToken)
+                : await versions.FirstOrDefaultAsync(version => version.Id == versionId.Value.Value, cancellationToken);
+            if (selectedVersion is not null)
+            {
+                return new AdventureCatalogDefinition(adventureId, selectedVersion.DefinitionJson, new AdventureVersionId(selectedVersion.Id));
+            }
 
             var json = await dbContext.Adventures
                 .AsNoTracking()
@@ -37,7 +50,7 @@ public sealed class DatabaseAdventureCatalog(AdventureDbContext? dbContext, stri
 
             if (json is not null)
             {
-                return json;
+                return new AdventureCatalogDefinition(adventureId, json, null);
             }
         }
 
@@ -47,7 +60,7 @@ public sealed class DatabaseAdventureCatalog(AdventureDbContext? dbContext, stri
             throw new FileNotFoundException($"Adventure definition '{adventureId}' was not found in the database or packaged content.", path);
         }
 
-        return await File.ReadAllTextAsync(path, cancellationToken);
+        return new AdventureCatalogDefinition(adventureId, await File.ReadAllTextAsync(path, cancellationToken), null);
     }
 
     private async Task SeedFromLocalFilesWhenEmptyAsync(CancellationToken cancellationToken)

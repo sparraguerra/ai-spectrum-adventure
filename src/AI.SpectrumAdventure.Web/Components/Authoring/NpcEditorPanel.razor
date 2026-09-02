@@ -1,0 +1,23 @@
+<section aria-labelledby="npc-editor-heading">
+    <h2 id="npc-editor-heading">NPCs</h2>
+    <EditForm Model="npc" OnValidSubmit="SaveAsync">
+        <InputText @bind-Value="npc.Id" placeholder="NPC id" />
+        <InputText @bind-Value="npc.Name" placeholder="Name" />
+        <InputTextArea @bind-Value="npc.Personality" placeholder="Personality" />
+        <InputText @bind-Value="npc.LocationId" placeholder="Authoritative location id" />
+        <InputText @bind-Value="npc.Knowledge" placeholder="Knowledge keys, comma separated" />
+        <button type="submit">Add or update NPC</button>
+    </EditForm>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string DefinitionJson { get; set; } = "{}";
+    [Parameter] public EventCallback<string> OnDefinitionChanged { get; set; }
+    private NpcModel npc = new();
+
+    private Task SaveAsync() => OnDefinitionChanged.InvokeAsync(DraftDefinitionEditor.UpsertNpc(DefinitionJson,
+        new AuthoringNpc(npc.Id, npc.Name, npc.Personality, Values(npc.Knowledge), LocationId: npc.LocationId)));
+
+    private static IReadOnlyList<string> Values(string value) => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private sealed class NpcModel { public string Id { get; set; } = ""; public string Name { get; set; } = ""; public string Personality { get; set; } = ""; public string LocationId { get; set; } = ""; public string Knowledge { get; set; } = ""; }
+}
