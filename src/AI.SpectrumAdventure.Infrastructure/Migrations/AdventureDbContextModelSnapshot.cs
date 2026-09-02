@@ -71,6 +71,99 @@ namespace AI.SpectrumAdventure.Infrastructure.Migrations
                     b.ToTable("games", (string)null);
                 });
 
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.GenerationMetadataRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ExpansionOrdinal")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GenerationKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GenerationVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceLocationId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WorldSeed")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorldId", "GenerationKey")
+                        .IsUnique();
+
+                    b.ToTable("world_generation_metadata", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.LoreRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorldId");
+
+                    b.ToTable("world_lore", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.RegionRecord", b =>
+                {
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AllowedDirectionsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("MaximumExpansions")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TerrainProfileJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WorldId", "Id");
+
+                    b.ToTable("world_regions", (string)null);
+                });
+
             modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.VisualAssetRecord", b =>
                 {
                     b.Property<string>("SceneStateKey")
@@ -89,6 +182,282 @@ namespace AI.SpectrumAdventure.Infrastructure.Migrations
                     b.HasKey("SceneStateKey");
 
                     b.ToTable("visual_assets", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldConnectionRecord", b =>
+                {
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Availability")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DestinationLocationId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceLocationId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WorldId", "Id");
+
+                    b.HasIndex("WorldId", "SourceLocationId", "Direction")
+                        .IsUnique();
+
+                    b.ToTable("world_connections", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldEventRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Cause")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorldId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("world_events", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldLocationRecord", b =>
+                {
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BaseDescription")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EnvironmentJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("RegionId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SceneVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StructuralNameKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WorldId", "Id");
+
+                    b.ToTable("world_locations", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldNpcStateRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("world_npc_states", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldPresentationRecord", b =>
+                {
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LocationId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SceneVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Atmosphere")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FactualDescription")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FactualName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VisualCharacteristicsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("WorldId", "LocationId", "SceneVersion");
+
+                    b.ToTable("world_presentations", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldPuzzleRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("world_puzzles", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GenerationVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("LegacyGameId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Seed")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LegacyGameId")
+                        .IsUnique();
+
+                    b.ToTable("worlds", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.GenerationMetadataRecord", b =>
+                {
+                    b.HasOne("AI.SpectrumAdventure.Infrastructure.Persistence.WorldRecord", null)
+                        .WithMany("GenerationMetadata")
+                        .HasForeignKey("WorldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.LoreRecord", b =>
+                {
+                    b.HasOne("AI.SpectrumAdventure.Infrastructure.Persistence.WorldRecord", null)
+                        .WithMany("LoreEntries")
+                        .HasForeignKey("WorldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.RegionRecord", b =>
+                {
+                    b.HasOne("AI.SpectrumAdventure.Infrastructure.Persistence.WorldRecord", null)
+                        .WithMany("Regions")
+                        .HasForeignKey("WorldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldConnectionRecord", b =>
+                {
+                    b.HasOne("AI.SpectrumAdventure.Infrastructure.Persistence.WorldRecord", null)
+                        .WithMany("Connections")
+                        .HasForeignKey("WorldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldEventRecord", b =>
+                {
+                    b.HasOne("AI.SpectrumAdventure.Infrastructure.Persistence.WorldRecord", null)
+                        .WithMany("Events")
+                        .HasForeignKey("WorldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldLocationRecord", b =>
+                {
+                    b.HasOne("AI.SpectrumAdventure.Infrastructure.Persistence.WorldRecord", null)
+                        .WithMany("Locations")
+                        .HasForeignKey("WorldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.WorldRecord", b =>
+                {
+                    b.Navigation("Connections");
+
+                    b.Navigation("Events");
+
+                    b.Navigation("GenerationMetadata");
+
+                    b.Navigation("Locations");
+
+                    b.Navigation("LoreEntries");
+
+                    b.Navigation("Regions");
                 });
 #pragma warning restore 612, 618
         }

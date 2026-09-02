@@ -3,10 +3,15 @@ namespace AI.SpectrumAdventure.Application.Rules;
 using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Events;
 using AI.SpectrumAdventure.Domain.Games;
+using AI.SpectrumAdventure.Domain.Worlds;
 
 /// <summary>FR-007/FR-008: validates movement between connected locations.</summary>
 public static class MovementRules
 {
+    public static bool IsPotentialUnknownBoundary(string direction, World world, LocationId sourceLocationId) =>
+        Enum.TryParse<ConnectionDirection>(direction, true, out var parsedDirection) &&
+        world.FindConnection(sourceLocationId, parsedDirection) is null;
+
     public static RulesValidationResult Validate(string direction, Game game)
     {
         var exit = game.CurrentLocation.FindExit(direction);

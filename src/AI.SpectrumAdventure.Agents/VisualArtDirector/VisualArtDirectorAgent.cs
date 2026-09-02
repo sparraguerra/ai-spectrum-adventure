@@ -16,7 +16,7 @@ public sealed class VisualArtDirectorAgent(IAgentRunner agentRunner) : IVisualAr
                     var spec = await agentRunner.RunAsync<VisualSceneSpec>(BuildPrompt(context), ct);
                     // Never trust the LLM's echoed key — it must match the deterministic cache key exactly,
                     // otherwise the blob name and the VisualAsset DB record end up keyed differently.
-                    return spec with { SceneStateKey = context.SceneStateKey };
+                    return spec with { SceneStateKey = context.SceneStateKey, VisualCharacteristics = context.VisualCharacteristics };
                 },
                 fallback: () => BuildFallback(context),
                 cancellationToken: cancellationToken));
@@ -33,5 +33,6 @@ public sealed class VisualArtDirectorAgent(IAgentRunner agentRunner) : IVisualAr
             TimeOfDay: null,
             Objects: [.. context.VisibleObjectNames.Take(12)],
             context.Mood,
-            RetroStyleConstraints.StyleTag);
+            RetroStyleConstraints.StyleTag,
+            context.VisualCharacteristics);
 }

@@ -9,4 +9,5 @@ public sealed record ActionResult(
     bool SceneChanged,
     string CurrentLocationId,
     IReadOnlyCollection<string> InventoryItemIds,
-    string? VisualAssetUrl);
+    string? VisualAssetUrl,
+    PuzzleEvaluationResult? PuzzleEvaluation = null);

@@ -10,6 +10,17 @@ public sealed class AdventureDbContext(DbContextOptions<AdventureDbContext> opti
 
     public DbSet<VisualAssetRecord> VisualAssets => Set<VisualAssetRecord>();
 
+    public DbSet<WorldRecord> Worlds => Set<WorldRecord>();
+    public DbSet<RegionRecord> WorldRegions => Set<RegionRecord>();
+    public DbSet<WorldLocationRecord> WorldLocations => Set<WorldLocationRecord>();
+    public DbSet<WorldPresentationRecord> WorldPresentations => Set<WorldPresentationRecord>();
+    public DbSet<WorldConnectionRecord> WorldConnections => Set<WorldConnectionRecord>();
+    public DbSet<GenerationMetadataRecord> WorldGenerationMetadata => Set<GenerationMetadataRecord>();
+    public DbSet<WorldEventRecord> WorldEvents => Set<WorldEventRecord>();
+    public DbSet<LoreRecord> WorldLore => Set<LoreRecord>();
+    public DbSet<WorldNpcStateRecord> WorldNpcStates => Set<WorldNpcStateRecord>();
+    public DbSet<WorldPuzzleRecord> WorldPuzzles => Set<WorldPuzzleRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AdventureDbContext).Assembly);

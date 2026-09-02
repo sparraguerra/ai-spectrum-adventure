@@ -46,6 +46,17 @@ EF Core creates the `games` table automatically via `dbContext.Database.EnsureCr
 
 For full local setup (secrets, Azure AI configuration) and manual validation scenarios, see [specs/001-conversational-adventure-mvp/quickstart.md](specs/001-conversational-adventure-mvp/quickstart.md).
 
+### Dynamic world validation
+
+Feature 002 stores generated worlds, lore, NPC placement, puzzle consequences, and presentation metadata in the same `AdventureDb` connection used by the existing application. Apply the included migrations before manual testing:
+
+```powershell
+dotnet ef database update --project src/AI.SpectrumAdventure.Infrastructure --startup-project src/AI.SpectrumAdventure.Web
+dotnet test
+```
+
+The test suite uses deterministic generators and test doubles; it does not require a live Azure AI endpoint. See [specs/002-dynamic-world-lore/quickstart.md](specs/002-dynamic-world-lore/quickstart.md) for Feature 002 scenarios.
+
 ## Container development
 
 The application is packaged as a stateless .NET 10 container. Runtime configuration comes from environment variables; no connection string, Azure endpoint, or storage credential is included in the image.

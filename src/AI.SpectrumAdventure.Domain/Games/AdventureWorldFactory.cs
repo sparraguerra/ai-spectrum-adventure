@@ -90,15 +90,20 @@ public static class AdventureWorldFactory
             objectIds: location.ObjectIds.Select(objectId => new ItemId(objectId)),
             npcIds: location.NpcIds.Select(npcId => new NpcId(npcId)))).ToList();
 
+        var npcLocations = definition.Locations
+            .SelectMany(location => location.NpcIds.Select(npcId => new { NpcId = npcId, LocationId = location.Id }))
+            .ToDictionary(pair => pair.NpcId, pair => pair.LocationId, StringComparer.OrdinalIgnoreCase);
         var npcs = definition.Npcs.Select(npc => new Npc(
             new NpcId(npc.Id),
             npc.Name,
             npc.Personality,
-            npc.KnowledgeBoundary)).ToList();
+            npc.KnowledgeBoundary,
+            npcLocations.TryGetValue(npc.Id, out var locationId) ? new LocationId(locationId) : null,
+            goals: [],
+            allowedLoreReferences: npc.KnowledgeBoundary)).ToList();
 
-        var puzzle = new Puzzle(
-            new PuzzleId(definition.Puzzle.Id),
-            new PuzzleSolutionCondition(new ItemId(definition.Puzzle.RequiredItemId), definition.Puzzle.RequiredClueKey));
+        var puzzles = GetPuzzleDefinitions(definition).Select(CreatePuzzle).ToList();
+        var puzzle = puzzles[0];
 
         var player = new Player(new LocationId(definition.StartingLocationId));
 
@@ -110,7 +115,8 @@ public static class AdventureWorldFactory
             items,
             npcs,
             puzzle,
-            definition.Id);
+            definition.Id,
+            puzzles: puzzles);
     }
 
     private static ItemState ParseItemState(IEnumerable<string> states)
@@ -158,10 +164,72 @@ public static class AdventureWorldFactory
             }
         }
 
-        if (!itemIds.Contains(definition.Puzzle.RequiredItemId))
+        var puzzles = GetPuzzleDefinitions(definition);
+        var puzzleIds = puzzles.Select(puzzle => puzzle.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (puzzleIds.Count != puzzles.Count)
         {
-            throw new InvalidOperationException($"Puzzle '{definition.Puzzle.Id}' requires unknown item '{definition.Puzzle.RequiredItemId}'.");
+            throw new InvalidOperationException("Adventure puzzle identifiers must be unique.");
         }
+
+        foreach (var puzzle in puzzles)
+        {
+            foreach (var condition in puzzle.Solutions.SelectMany(solution => solution.Conditions))
+            {
+                if (condition.Type == PuzzleConditionType.ItemPossessed && !itemIds.Contains(condition.ReferenceId))
+                {
+                    throw new InvalidOperationException($"Puzzle '{puzzle.Id}' requires unknown item '{condition.ReferenceId}'.");
+                }
+
+                if (condition.Type == PuzzleConditionType.PuzzleSolved && !puzzleIds.Contains(condition.ReferenceId))
+                {
+                    throw new InvalidOperationException($"Puzzle '{puzzle.Id}' references unknown puzzle '{condition.ReferenceId}'.");
+                }
+            }
+
+            foreach (var prerequisite in puzzle.Prerequisites)
+            {
+                if (prerequisite.Type == PuzzleConditionType.ItemPossessed && !itemIds.Contains(prerequisite.ReferenceId))
+                {
+                    throw new InvalidOperationException($"Puzzle '{puzzle.Id}' requires unknown item '{prerequisite.ReferenceId}'.");
+                }
+
+                if (prerequisite.Type == PuzzleConditionType.PuzzleSolved && !puzzleIds.Contains(prerequisite.ReferenceId))
+                {
+                    throw new InvalidOperationException($"Puzzle '{puzzle.Id}' references unknown puzzle '{prerequisite.ReferenceId}'.");
+                }
+            }
+
+            foreach (var link in puzzle.ChainLinks.Where(link => !puzzleIds.Contains(link)))
+            {
+                throw new InvalidOperationException($"Puzzle '{puzzle.Id}' links to unknown puzzle '{link}'.");
+            }
+
+            foreach (var outcome in puzzle.Outcomes.Where(outcome => outcome.Type == PuzzleOutcomeType.FollowOnPuzzle && !puzzleIds.Contains(outcome.ReferenceId)))
+            {
+                throw new InvalidOperationException($"Puzzle '{puzzle.Id}' has an outcome referencing unknown puzzle '{outcome.ReferenceId}'.");
+            }
+        }
+    }
+
+    private static IReadOnlyList<PuzzleDefinition> GetPuzzleDefinitions(AdventureDefinition definition) =>
+        definition.Puzzles.Count > 0 ? definition.Puzzles : [definition.Puzzle];
+
+    private static Puzzle CreatePuzzle(PuzzleDefinition definition)
+    {
+        if (definition.Solutions.Count == 0)
+        {
+            return new Puzzle(new PuzzleId(definition.Id), new PuzzleSolutionCondition(new ItemId(definition.RequiredItemId), definition.RequiredClueKey));
+        }
+
+        return new Puzzle(
+            new PuzzleId(definition.Id),
+            definition.Solutions.Select(solution => new PuzzleSolutionDefinition(
+                solution.Id,
+                solution.Conditions.Select(condition => new PuzzleCondition(condition.Type, condition.ReferenceId)).ToArray())),
+            definition.Prerequisites.Select(prerequisite => new PuzzlePrerequisiteReference(prerequisite.Type, prerequisite.ReferenceId)),
+            definition.Outcomes.Select(outcome => new PuzzleOutcomeDefinition(outcome.Id, outcome.Type, outcome.ReferenceId)),
+            definition.ChainLinks.Select(link => new PuzzleChainLink(new PuzzleId(link))),
+            definition.State);
     }
 
     private sealed class AdventureDefinition
@@ -173,6 +241,7 @@ public static class AdventureWorldFactory
         public List<ItemDefinition> Items { get; init; } = [];
         public List<NpcDefinition> Npcs { get; init; } = [];
         public PuzzleDefinition Puzzle { get; init; } = new();
+        public List<PuzzleDefinition> Puzzles { get; init; } = [];
     }
 
     private sealed class LocationDefinition
@@ -221,5 +290,35 @@ public static class AdventureWorldFactory
         public string Id { get; init; } = "";
         public string RequiredItemId { get; init; } = "";
         public string RequiredClueKey { get; init; } = "";
+        public PuzzleState State { get; init; } = PuzzleState.Discovered;
+        public List<PuzzlePrerequisiteDefinition> Prerequisites { get; init; } = [];
+        public List<PuzzleSolutionDefinitionJson> Solutions { get; init; } = [];
+        public List<PuzzleOutcomeDefinitionJson> Outcomes { get; init; } = [];
+        public List<string> ChainLinks { get; init; } = [];
+    }
+
+    private sealed class PuzzlePrerequisiteDefinition
+    {
+        public PuzzleConditionType Type { get; init; }
+        public string ReferenceId { get; init; } = "";
+    }
+
+    private sealed class PuzzleConditionDefinition
+    {
+        public PuzzleConditionType Type { get; init; }
+        public string ReferenceId { get; init; } = "";
+    }
+
+    private sealed class PuzzleSolutionDefinitionJson
+    {
+        public string Id { get; init; } = "";
+        public List<PuzzleConditionDefinition> Conditions { get; init; } = [];
+    }
+
+    private sealed class PuzzleOutcomeDefinitionJson
+    {
+        public string Id { get; init; } = "";
+        public PuzzleOutcomeType Type { get; init; }
+        public string ReferenceId { get; init; } = "";
     }
 }

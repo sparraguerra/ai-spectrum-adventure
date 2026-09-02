@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LoreDiscoveryResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["loreId", "isNewDiscovery", "playerVisibleSummary", "truthClassification"],
+  "properties": {
+    "loreId": { "type": "string" },
+    "isNewDiscovery": { "type": "boolean" },
+    "playerVisibleSummary": { "type": "string" },
+    "truthClassification": { "enum": ["immutableFact", "historicalFact", "regionalFact", "rumour"] }
+  }
+}

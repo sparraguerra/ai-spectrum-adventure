@@ -1,0 +1,28 @@
+@using AI.SpectrumAdventure.Application.Worlds
+@using AI.SpectrumAdventure.Domain.Games
+@using AI.SpectrumAdventure.Domain.Worlds
+
+@if (Map.Locations.Count == 0)
+{
+    <p class="mb-0 text-muted">No map details confirmed.</p>
+}
+else
+{
+    <ul class="list-group list-group-flush">
+        @foreach (var location in Map.Locations)
+        {
+            <li class="list-group-item px-0">@location.Name (@location.State)</li>
+        }
+        @foreach (var connection in Map.Connections)
+        {
+            <li class="list-group-item px-0">@connection.Direction: @connection.SourceLocationId to @connection.DestinationLocationId (@connection.Availability)</li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter, EditorRequired] public Game Game { get; set; } = null!;
+    [Parameter, EditorRequired] public World World { get; set; } = null!;
+
+    private DiscoveredMap Map => GetDiscoveredMapQuery.Execute(Game, World);
+}

@@ -5,12 +5,16 @@
 @using AI.SpectrumAdventure.Application.Abstractions
 @using AI.SpectrumAdventure.Contracts
 @using AI.SpectrumAdventure.Domain.Games
+@using AI.SpectrumAdventure.Application.Worlds
 
 @inject IGameRepository GameRepository
+@inject IWorldRepository WorldRepository
+@inject ExploreUnknownDirectionUseCase ExploreUnknownDirectionUseCase
 @inject IIntentInterpreter IntentInterpreter
 @inject IVisualArtDirector VisualArtDirector
 @inject IImagePipeline ImagePipeline
 @inject IVisualAssetRepository VisualAssetRepository
+@inject IWorldEnrichmentRepository WorldEnrichmentRepository
 @inject IAdventureCatalog AdventureCatalog
 
 <PageTitle>Adventure</PageTitle>
@@ -64,7 +68,7 @@
 
                     <div class="card shadow-sm border-0 mb-4">
                         <div class="card-body">
-                            <SceneImage Game="CurrentGame" Result="LastResult" />
+                            <SceneImage Game="CurrentGame" World="CurrentWorld" Result="LastResult" />
                         </div>
                     </div>
 
@@ -105,6 +109,16 @@
                             <NpcDialoguePanel Game="CurrentGame" />
                         </div>
                     </div>
+
+                    @if (CurrentWorld is not null)
+                    {
+                        <div class="card shadow-sm border-0 mt-4">
+                            <div class="card-body">
+                                <h2 class="h5 mb-3">Map</h2>
+                                <MapPanel Game="CurrentGame" World="CurrentWorld" />
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -114,6 +128,7 @@
 @code {
     private Game? CurrentGame;
     private ActionResult? LastResult;
+    private AI.SpectrumAdventure.Domain.Worlds.World? CurrentWorld;
     private IReadOnlyCollection<AdventureCatalogItem> AvailableAdventures = [];
     private string SelectedAdventureId = AdventureWorldFactory.DefaultAdventureId;
     private bool IsProcessing;
@@ -133,8 +148,9 @@
 
         try
         {
-            var game = await new StartGameUseCase(GameRepository, AdventureCatalog).ExecuteAsync(SelectedAdventureId);
+            var game = await new StartGameUseCase(GameRepository, AdventureCatalog, WorldRepository).ExecuteAsync(SelectedAdventureId);
             CurrentGame = game;
+            CurrentWorld = game.WorldId is { } worldId ? await WorldRepository.FindAsync(worldId) : null;
             var initialResult = AdventureOrchestrator.ProcessAction(game, new ParsedIntent(IntentAction.Look, null, new Dictionary<string, string>(), 1.0, "look"));
             LastResult = await VisualSceneOrchestrator.AttachVisualAsync(
                 game,
@@ -142,7 +158,9 @@
                 VisualArtDirector,
                 ImagePipeline,
                 VisualAssetRepository,
-                ensureCurrentScene: true);
+                ensureCurrentScene: true,
+                world: CurrentWorld,
+                enrichmentRepository: WorldEnrichmentRepository);
         }
         finally
         {
@@ -162,13 +180,16 @@
         try
         {
             var intent = await IntentInterpreter.InterpretAsync(input);
-            var result = AdventureOrchestrator.ProcessAction(CurrentGame, intent);
+            var result = await AdventureOrchestrator.ProcessActionAsync(CurrentGame, intent, ExploreUnknownDirectionUseCase);
+            CurrentWorld = CurrentGame.WorldId is { } worldId ? await WorldRepository.FindAsync(worldId) : null;
             LastResult = await VisualSceneOrchestrator.AttachVisualAsync(
                 CurrentGame,
                 result,
                 VisualArtDirector,
                 ImagePipeline,
-                VisualAssetRepository);
+                VisualAssetRepository,
+                world: CurrentWorld,
+                enrichmentRepository: WorldEnrichmentRepository);
 
             await GameRepository.SaveAsync(CurrentGame);
         }

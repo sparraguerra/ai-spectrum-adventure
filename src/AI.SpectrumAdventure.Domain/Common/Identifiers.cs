@@ -7,6 +7,35 @@ public readonly record struct GameId(Guid Value)
     public override string ToString() => Value.ToString();
 }
 
+public readonly record struct WorldId(Guid Value)
+{
+    public static WorldId New() => new(Guid.NewGuid());
+
+    public override string ToString() => Value.ToString();
+}
+
+public readonly record struct RegionId(string Value)
+{
+    public override string ToString() => Value;
+}
+
+public readonly record struct ConnectionId(string Value)
+{
+    public override string ToString() => Value;
+}
+
+public readonly record struct LoreId(string Value)
+{
+    public override string ToString() => Value;
+}
+
+public readonly record struct WorldEventId(Guid Value)
+{
+    public static WorldEventId New() => new(Guid.NewGuid());
+
+    public override string ToString() => Value.ToString();
+}
+
 public readonly record struct LocationId(string Value)
 {
     public override string ToString() => Value;
