@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorldGenerationRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["worldId", "generationKey", "sourceLocationId", "direction", "generationVersion"],
+  "properties": {
+    "worldId": { "type": "string" },
+    "generationKey": { "type": "string" },
+    "sourceLocationId": { "type": "string" },
+    "direction": { "type": "string" },
+    "generationVersion": { "type": "string" }
+  }
+}

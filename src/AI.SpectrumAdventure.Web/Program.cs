@@ -2,9 +2,12 @@ using AI.SpectrumAdventure.Agents;
 using AI.SpectrumAdventure.Agents.ImagePipeline;
 using AI.SpectrumAdventure.Agents.Narrator;
 using AI.SpectrumAdventure.Agents.Npc;
+using AI.SpectrumAdventure.Agents.WorldEnrichment;
 using AI.SpectrumAdventure.Agents.Intent;
 using AI.SpectrumAdventure.Agents.VisualArtDirector;
 using AI.SpectrumAdventure.Application.Abstractions;
+using AI.SpectrumAdventure.Application.Lore;
+using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Infrastructure.Persistence;
 using AI.SpectrumAdventure.Infrastructure.Storage;
 using AI.SpectrumAdventure.Web.Components;
@@ -67,6 +70,22 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddDbContext<AdventureDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("AdventureDb")));
 builder.Services.AddScoped<IGameRepository, EfGameRepository>();
+builder.Services.AddScoped<IWorldRepository, EfWorldRepository>();
+builder.Services.AddSingleton<WorldGenerator>();
+builder.Services.AddSingleton<IRegionGenerator>(sp => sp.GetRequiredService<WorldGenerator>());
+builder.Services.AddSingleton<ILocationGenerator>(sp => sp.GetRequiredService<WorldGenerator>());
+builder.Services.AddSingleton<IConnectionGenerator>(sp => sp.GetRequiredService<WorldGenerator>());
+builder.Services.AddSingleton<IWorldGenerationRules, WorldGenerationRules>();
+builder.Services.AddSingleton<IWorldConstraintValidator, WorldConstraintValidator>();
+builder.Services.AddSingleton<WorldEnrichmentValidator>();
+builder.Services.AddScoped<WorldEnrichmentService>();
+builder.Services.AddSingleton<IWorldEnrichmentAgent, WorldEnrichmentAgent>();
+builder.Services.AddScoped<IWorldEnrichmentRepository, WorldEnrichmentRepository>();
+builder.Services.AddScoped<ExploreUnknownDirectionUseCase>();
+builder.Services.AddSingleton<WorldEventScheduler>();
+builder.Services.AddScoped<ApplyWorldEventUseCase>();
+builder.Services.AddSingleton(new LoreDiscoveryRules([]));
+builder.Services.AddScoped<DiscoverLoreUseCase>();
 builder.Services.AddScoped<IAdventureCatalog>(sp =>
 {
     var localAdventureDirectory = Path.Combine(AppContext.BaseDirectory, "Adventures");

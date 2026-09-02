@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorldExplorationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["success", "worldId", "locationId", "newlyDiscovered", "mapUpdated"],
+  "properties": {
+    "success": { "type": "boolean" },
+    "worldId": { "type": "string" },
+    "locationId": { "type": ["string", "null"] },
+    "newlyDiscovered": { "type": "boolean" },
+    "mapUpdated": { "type": "boolean" },
+    "failureReason": { "type": ["string", "null"] }
+  }
+}

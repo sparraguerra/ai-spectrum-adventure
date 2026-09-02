@@ -3,7 +3,9 @@ namespace AI.SpectrumAdventure.Application.Orchestration;
 using System.Diagnostics;
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Application.Games;
+using AI.SpectrumAdventure.Application.Lore;
 using AI.SpectrumAdventure.Application.Rules;
+using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Contracts;
 using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Events;
@@ -39,11 +41,12 @@ public static class AdventureOrchestrator
             return result;
         }
 
+        var puzzleEvaluation = IsPuzzleAttempt(intent, game) ? PuzzleRules.Evaluate(intent, game) : null;
         var validation = RulesEngine.Validate(intent, game);
 
         if (!validation.Success)
         {
-            var result = BuildResult(game, success: false, validation.Reason, BuildFailureNarrative(validation.Reason), sceneChanged: false);
+            var result = BuildResult(game, success: false, validation.Reason, BuildFailureNarrative(validation.Reason), sceneChanged: false, puzzleEvaluation);
             activity?.SetTag("game.action_success", result.Success);
             activity?.SetTag("game.outcome", result.Reason);
             return result;
@@ -54,11 +57,25 @@ public static class AdventureOrchestrator
         var sceneChanged = validation.ProposedEvents.Any(e =>
             e is PlayerMovedEvent or PuzzleSolvedEvent or LocationDiscoveredEvent or ObjectStateChangedEvent);
 
-        var successResult = BuildResult(game, success: true, RulesFailureReason.None, BuildSuccessNarrative(intent, game), sceneChanged);
+        var successResult = BuildResult(game, success: true, RulesFailureReason.None, BuildSuccessNarrative(intent, game), sceneChanged, puzzleEvaluation);
         activity?.SetTag("game.action_success", successResult.Success);
         activity?.SetTag("game.scene_changed", sceneChanged);
         return successResult;
     }
+
+    public static async Task<ActionResult> ProcessActionAsync(Game game, ParsedIntent intent, ExploreUnknownDirectionUseCase exploreUnknownDirectionUseCase, CancellationToken cancellationToken = default)
+    {
+        if (intent.Action != IntentAction.Go || intent.Target is null || MovementRules.Validate(intent.Target, game).Reason != RulesFailureReason.NoSuchExit)
+        {
+            return ProcessAction(game, intent);
+        }
+
+        var exploration = await exploreUnknownDirectionUseCase.ExecuteAsync(game, intent.Target, cancellationToken);
+        return BuildResult(game, exploration.Success, exploration.Success ? RulesFailureReason.None : RulesFailureReason.NoSuchExit, exploration.Narrative, exploration.Success);
+    }
+
+    public static async Task<IReadOnlyCollection<LoreDiscoveryResult>> DiscoverLoreAsync(Game game, Domain.Worlds.World world, DiscoverLoreUseCase discoverLoreUseCase, IEnumerable<LoreDiscoveryTrigger> triggers, DateTimeOffset discoveredAt, CancellationToken cancellationToken = default) =>
+        await discoverLoreUseCase.ExecuteAsync(game, world, triggers, discoveredAt, cancellationToken);
 
     /// <summary>
     /// Runs the same deterministic pipeline as <see cref="ProcessAction"/>, then asks the Narrator agent to
@@ -98,7 +115,7 @@ public static class AdventureOrchestrator
             .Where(exit => exit.RequiredCondition is null || exit.RequiredCondition.IsSatisfiedBy(game.WorldFlagKeys))
             .Select(exit => exit.Direction);
 
-    private static ActionResult BuildResult(Game game, bool success, RulesFailureReason reason, string narrative, bool sceneChanged) =>
+    private static ActionResult BuildResult(Game game, bool success, RulesFailureReason reason, string narrative, bool sceneChanged, PuzzleEvaluationResult? puzzleEvaluation = null) =>
         new(
             game.Id.Value,
             success,
@@ -107,7 +124,13 @@ public static class AdventureOrchestrator
             sceneChanged,
             game.CurrentLocation.Id.Value,
             GetInventoryQuery.Execute(game),
-            VisualAssetUrl: null);
+            VisualAssetUrl: null,
+            PuzzleEvaluation: puzzleEvaluation);
+
+    private static bool IsPuzzleAttempt(ParsedIntent intent, Game game) =>
+        intent.Action == IntentAction.Use &&
+        intent.Parameters.TryGetValue("on", out var targetId) &&
+        game.Puzzles.Any(puzzle => string.Equals(targetId, puzzle.Id.Value, StringComparison.OrdinalIgnoreCase));
 
     private static string BuildSuccessNarrative(ParsedIntent intent, Game game) =>
         intent.Action switch

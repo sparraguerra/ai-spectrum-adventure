@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NpcContext",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["npcId", "personality", "goals", "currentLocationId", "allowedKnowledge", "conversationHistory"],
+  "properties": {
+    "npcId": { "type": "string" },
+    "personality": { "type": "string" },
+    "goals": { "type": "array", "items": { "type": "string" } },
+    "currentLocationId": { "type": "string" },
+    "allowedKnowledge": { "type": "array", "items": { "type": "string" } },
+    "conversationHistory": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -38,6 +38,14 @@ public sealed class Location
 
     internal void MarkDiscovered() => Discovered = true;
 
+    internal void AddExit(Exit exit)
+    {
+        if (FindExit(exit.Direction) is null)
+        {
+            _exits.Add(exit);
+        }
+    }
+
     internal void AddItem(ItemId itemId)
     {
         if (!_objectIds.Contains(itemId))

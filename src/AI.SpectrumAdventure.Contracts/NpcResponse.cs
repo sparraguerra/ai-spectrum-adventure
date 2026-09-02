@@ -6,7 +6,9 @@ public sealed record NpcContext(
     string PersonalityProfile,
     IReadOnlyCollection<string> KnowledgeBoundary,
     IReadOnlyCollection<string> RecentConversation,
-    string PlayerUtterance);
+    string PlayerUtterance,
+    IReadOnlyCollection<string>? PlayerKnownFacts = null,
+    string? CurrentLocationId = null);
 
 /// <summary>NPC Agent output (per contracts/npc-response.schema.json).</summary>
 public sealed record NpcResponse(

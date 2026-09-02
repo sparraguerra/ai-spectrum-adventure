@@ -6,6 +6,7 @@ using AI.SpectrumAdventure.Contracts;
 using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Events;
 using AI.SpectrumAdventure.Domain.Games;
+using AI.SpectrumAdventure.Domain.Npcs;
 
 /// <summary>
 /// Coordinates player-NPC conversation: builds context from the authoritative Npc, asks the NPC Agent for a
@@ -27,12 +28,7 @@ public static class NpcConversationOrchestrator
         }
 
         var npc = game.GetNpc(npcId);
-        var context = new NpcContext(
-            npc.Name,
-            npc.PersonalityProfile,
-            [.. npc.KnowledgeBoundary],
-            [.. npc.ConversationMemory.TakeLast(3).Select(turn => $"{turn.PlayerUtterance} -> {turn.NpcReply}")],
-            playerUtterance);
+        var context = CreateContext(game, npc, playerUtterance);
 
         var response = await npcAgent.ReplyAsync(context, cancellationToken);
 
@@ -47,6 +43,30 @@ public static class NpcConversationOrchestrator
         game.Apply(new NpcRelationshipChangedEvent(Guid.NewGuid(), now, npcId, flagKey, playerUtterance, response.Reply));
 
         return BuildResult(game, success: true, reason: null, response.Reply);
+    }
+
+    public static NpcContext CreateContext(Game game, Npc npc, string playerUtterance)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(npc);
+        ArgumentException.ThrowIfNullOrWhiteSpace(playerUtterance);
+
+        var allowedKnowledge = npc.KnowledgeBoundary.Intersect(npc.AllowedLoreReferences, StringComparer.Ordinal).ToArray();
+        var playerKnownFacts = game.Player.KnownClues
+            .Concat(game.PlayerKnowledge.Clues.Keys)
+            .Concat(game.PlayerKnowledge.Lore.Keys)
+            .Where(allowedKnowledge.Contains)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        return new NpcContext(
+            npc.Name,
+            npc.PersonalityProfile,
+            allowedKnowledge,
+            [.. npc.ConversationMemory.TakeLast(3).Select(turn => $"{turn.PlayerUtterance} -> {turn.NpcReply}")],
+            playerUtterance,
+            playerKnownFacts,
+            npc.WorldLocationId?.Value);
     }
 
     private static ActionResult BuildResult(Game game, bool success, string? reason, string narrative) =>

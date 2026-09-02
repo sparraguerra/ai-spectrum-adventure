@@ -6,7 +6,8 @@ public sealed record VisualContext(
     string LocationName,
     IReadOnlyCollection<string> VisibleObjectNames,
     string Mood,
-    string SceneStateKey);
+    string SceneStateKey,
+    IReadOnlyCollection<string>? VisualCharacteristics = null);
 
 /// <summary>Visual Art Director output (per contracts/visual-scene-spec.schema.json).</summary>
 public sealed record VisualSceneSpec(
@@ -15,4 +16,5 @@ public sealed record VisualSceneSpec(
     string? TimeOfDay,
     IReadOnlyCollection<string> Objects,
     string Mood,
-    string Style);
+    string Style,
+    IReadOnlyCollection<string>? VisualCharacteristics = null);

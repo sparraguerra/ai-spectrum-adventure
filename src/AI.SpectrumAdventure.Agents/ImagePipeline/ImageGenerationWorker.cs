@@ -25,6 +25,7 @@ public sealed class ImageGenerationWorker(
             var spec = request.Scene;
             using var activity = AgentTelemetry.ActivitySource.StartActivity("image-pipeline.generate");
             activity?.SetTag("scene.state_key", spec.SceneStateKey);
+            activity?.SetTag("scene.visual_characteristics", string.Join(",", spec.VisualCharacteristics ?? []));
 
             using var scope = scopeFactory.CreateScope();
             var generator = scope.ServiceProvider.GetRequiredService<IImageGenerator>();

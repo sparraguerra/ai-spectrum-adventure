@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\AI.SpectrumAdventure.Application\AI.SpectrumAdventure.Application.csproj" />
     <ProjectReference Include="..\..\src\AI.SpectrumAdventure.Domain\AI.SpectrumAdventure.Domain.csproj" />
   </ItemGroup>
 

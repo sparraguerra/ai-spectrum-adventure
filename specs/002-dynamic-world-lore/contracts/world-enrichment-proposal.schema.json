@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorldEnrichmentProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["worldId", "locationId", "sceneVersion", "description", "atmosphere", "visualCharacteristics", "narrativeHooks"],
+  "properties": {
+    "worldId": { "type": "string" },
+    "locationId": { "type": "string" },
+    "sceneVersion": { "type": "integer", "minimum": 1 },
+    "displayName": { "type": ["string", "null"] },
+    "description": { "type": "string" },
+    "atmosphere": { "type": "string" },
+    "localLegend": { "type": ["string", "null"] },
+    "visualCharacteristics": { "type": "array", "items": { "type": "string" } },
+    "narrativeHooks": { "type": "array", "items": { "type": "string" } }
+  }
+}

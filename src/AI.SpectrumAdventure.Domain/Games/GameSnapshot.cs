@@ -16,9 +16,22 @@ public sealed record GameSnapshot(
     List<NpcSnapshot> Npcs,
     PuzzleSnapshot Puzzle,
     List<WorldFlagSnapshot> WorldFlags,
-    List<GameEventSnapshot> EventHistory);
+    List<GameEventSnapshot> EventHistory,
+    string? WorldId = null,
+    PlayerKnowledgeSnapshot? PlayerKnowledge = null,
+    List<PuzzleSnapshot>? Puzzles = null);
 
 public sealed record PlayerSnapshot(string CurrentLocationId, List<string> InventoryItemIds, List<string> KnownClues);
+
+public sealed record KnowledgeEntrySnapshot(string Id, DateTimeOffset DiscoveredAt);
+
+public sealed record PlayerKnowledgeSnapshot(
+    List<KnowledgeEntrySnapshot>? Regions = null,
+    List<KnowledgeEntrySnapshot>? Locations = null,
+    List<KnowledgeEntrySnapshot>? Connections = null,
+    List<KnowledgeEntrySnapshot>? Lore = null,
+    List<KnowledgeEntrySnapshot>? Clues = null,
+    List<KnowledgeEntrySnapshot>? Npcs = null);
 
 public sealed record ExitSnapshot(string Direction, string DestinationId, string? RequiredFlagKey, bool? MustBeSet);
 
@@ -48,9 +61,30 @@ public sealed record NpcSnapshot(
     string PersonalityProfile,
     List<string> KnowledgeBoundary,
     List<ConversationTurnSnapshot> ConversationMemory,
-    List<WorldFlagSnapshot> RelationshipFlags);
+    List<WorldFlagSnapshot> RelationshipFlags,
+    string? WorldLocationId = null,
+    List<string>? Goals = null,
+    List<string>? AllowedLoreReferences = null,
+    long StateVersion = 1);
 
-public sealed record PuzzleSnapshot(string Id, string RequiredItemId, string RequiredClueKey, bool Solved);
+public sealed record PuzzleSnapshot(
+    string Id,
+    string RequiredItemId,
+    string RequiredClueKey,
+    bool Solved,
+    Puzzles.PuzzleState? State = null,
+    List<PuzzlePrerequisiteSnapshot>? Prerequisites = null,
+    List<PuzzleSolutionSnapshot>? Solutions = null,
+    List<PuzzleOutcomeSnapshot>? Outcomes = null,
+    List<string>? ChainLinks = null);
+
+public sealed record PuzzlePrerequisiteSnapshot(Puzzles.PuzzleConditionType Type, string ReferenceId);
+
+public sealed record PuzzleConditionSnapshot(Puzzles.PuzzleConditionType Type, string ReferenceId);
+
+public sealed record PuzzleSolutionSnapshot(string Id, List<PuzzleConditionSnapshot> Conditions);
+
+public sealed record PuzzleOutcomeSnapshot(string Id, Puzzles.PuzzleOutcomeType Type, string ReferenceId);
 
 public sealed record WorldFlagSnapshot(string Key, DateTimeOffset SetAt);
 

@@ -14,9 +14,9 @@ public static class ItemUsageRules
             return RulesValidationResult.Fail(RulesFailureReason.ItemNotInInventory);
         }
 
-        if (targetId is not null && targetId.Value.Value == game.Puzzle.Id.Value)
+        if (targetId is not null && game.Puzzles.Any(puzzle => puzzle.Id.Value == targetId.Value.Value))
         {
-            return PuzzleRules.ValidateSolve(itemId, game);
+            return PuzzleRules.ValidateSolve(itemId, new PuzzleId(targetId.Value.Value), game);
         }
 
         return RulesValidationResult.Ok(new ItemUsedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, itemId, targetId));

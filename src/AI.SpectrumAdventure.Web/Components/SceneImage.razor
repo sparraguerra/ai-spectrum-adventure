@@ -7,7 +7,13 @@
 @inject ISceneUpdateNotifier SceneUpdateNotifier
 @inject IServiceScopeFactory ScopeFactory
 
-@if (string.IsNullOrWhiteSpace(SceneUrl))
+@if (SceneStatus == VisualAssetStatus.Failed)
+{
+    <div class="retro-scene-frame" role="status" aria-live="polite">
+        <div class="retro-scene-placeholder">Scene image unavailable</div>
+    </div>
+}
+else if (string.IsNullOrWhiteSpace(SceneUrl))
 {
     <div class="retro-scene-frame" role="status" aria-live="polite">
         <div class="retro-scene-placeholder">
@@ -25,12 +31,15 @@ else
 @code {
     [Parameter] public Game? Game { get; set; }
 
+    [Parameter] public AI.SpectrumAdventure.Domain.Worlds.World? World { get; set; }
+
     [Parameter] public ActionResult? Result { get; set; }
 
     private IDisposable? SceneSubscription;
     private CancellationTokenSource? PollingCancellation;
     private Guid? SubscribedGameId;
     private string? SceneUrl;
+    private VisualAssetStatus? SceneStatus;
     private ActionResult? LastProcessedResult;
 
     protected override void OnParametersSet()
@@ -41,6 +50,7 @@ else
 
             // Drop the stale image on a location change so it isn't shown while the new one regenerates.
             SceneUrl = Result.SceneChanged ? Result.VisualAssetUrl : SceneUrl ?? Result.VisualAssetUrl;
+            SceneStatus = Result.SceneChanged && string.IsNullOrWhiteSpace(Result.VisualAssetUrl) ? VisualAssetStatus.Pending : SceneStatus;
         }
 
         if (Game is null || SubscribedGameId == Game.Id.Value)
@@ -62,6 +72,7 @@ else
         {
             SceneUrl = update.VisualAssetUrl;
         }
+        SceneStatus = update.Status;
 
         return InvokeAsync(StateHasChanged);
     }
@@ -72,7 +83,10 @@ else
 
         while (await timer.WaitForNextTickAsync(cancellationToken))
         {
-            var sceneStateKey = SceneStateKeyBuilder.Build(game.CurrentLocation.Id.Value, game.WorldFlagKeys);
+            var worldLocation = World?.Locations.SingleOrDefault(location => location.Id.Value == game.CurrentLocation.Id.Value);
+            var sceneStateKey = worldLocation is null
+                ? SceneStateKeyBuilder.Build(game.CurrentLocation.Id.Value, game.WorldFlagKeys)
+                : SceneStateKeyBuilder.Build(World!.Id.Value, worldLocation.Id.Value, worldLocation.SceneVersion, game.WorldFlagKeys);
             using var scope = ScopeFactory.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IVisualAssetRepository>();
             var asset = await repository.FindAsync(sceneStateKey, cancellationToken);
@@ -80,12 +94,15 @@ else
             if (asset is { Status: VisualAssetStatus.Ready, BlobUri: not null })
             {
                 SceneUrl = asset.BlobUri;
+                SceneStatus = asset.Status;
                 await InvokeAsync(StateHasChanged);
                 return;
             }
 
             if (asset?.Status == VisualAssetStatus.Failed)
             {
+                SceneStatus = asset.Status;
+                await InvokeAsync(StateHasChanged);
                 return;
             }
         }

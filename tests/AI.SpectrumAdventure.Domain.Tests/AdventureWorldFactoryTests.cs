@@ -2,6 +2,7 @@ namespace AI.SpectrumAdventure.Domain.Tests;
 
 using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Games;
+using AI.SpectrumAdventure.Domain.Puzzles;
 using FluentAssertions;
 using Xunit;
 
@@ -88,6 +89,44 @@ public class AdventureWorldFactoryTests
         hermit.Knows(AdventureWorldFactory.TowerClueKey).Should().BeTrue();
         hermit.Knows("something-unrelated").Should().BeFalse();
     }
+
+        [Fact]
+        public void CreateNewGameFromJson_LoadsMultiplePuzzleDefinitionsWithAlternativesAndChains()
+        {
+                const string json = """
+                        {
+                            "id": "crystal-caves",
+                            "title": "Crystal Caves",
+                            "startingLocationId": "entrance",
+                            "locations": [{ "id": "entrance", "name": "Entrance", "description": "A cave entrance." }],
+                            "items": [{ "id": "lamp", "name": "Lamp", "description": "A lamp.", "states": ["visible", "collectible"] }],
+                            "npcs": [],
+                            "puzzles": [
+                                {
+                                    "id": "crystal-door",
+                                    "solutions": [
+                                        { "id": "light-the-way", "conditions": [{ "type": "itemPossessed", "referenceId": "lamp" }] },
+                                        { "id": "know-the-way", "conditions": [{ "type": "clueKnown", "referenceId": "crystal-riddle" }] }
+                                    ],
+                                    "outcomes": [{ "id": "reveal-vault", "type": "followOnPuzzle", "referenceId": "vault-lock" }],
+                                    "chainLinks": ["vault-lock"]
+                                },
+                                {
+                                    "id": "vault-lock",
+                                    "solutions": [{ "id": "use-lamp", "conditions": [{ "type": "itemPossessed", "referenceId": "lamp" }] }]
+                                }
+                            ]
+                        }
+                        """;
+
+                var game = AdventureWorldFactory.CreateNewGameFromJson(GameId.New(), DateTimeOffset.UtcNow, json);
+
+                game.Puzzles.Should().HaveCount(2);
+                var crystalDoor = game.GetPuzzle(new PuzzleId("crystal-door"));
+                crystalDoor.Solutions.Should().HaveCount(2);
+                crystalDoor.ChainLinks.Should().ContainSingle(link => link.NextPuzzleId == new PuzzleId("vault-lock"));
+                crystalDoor.Outcomes.Should().ContainSingle(outcome => outcome.Type == PuzzleOutcomeType.FollowOnPuzzle && outcome.ReferenceId == "vault-lock");
+        }
 
         [Fact]
         public void CreateNewGameFromJson_CreatesACustomAdventureDefinition()

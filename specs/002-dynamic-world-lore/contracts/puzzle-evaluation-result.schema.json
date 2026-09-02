@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PuzzleEvaluationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["puzzleId", "accepted", "previousState", "currentState", "consequenceIds"],
+  "properties": {
+    "puzzleId": { "type": "string" },
+    "accepted": { "type": "boolean" },
+    "previousState": { "type": "string" },
+    "currentState": { "type": "string" },
+    "consequenceIds": { "type": "array", "items": { "type": "string" } },
+    "rejectionReason": { "type": ["string", "null"] }
+  }
+}
