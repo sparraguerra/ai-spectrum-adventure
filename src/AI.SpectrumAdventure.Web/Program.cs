@@ -179,6 +179,13 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapGet("/docs/adventure-authoring-guide.md", () =>
+{
+    var manualPath = Path.Combine(AppContext.BaseDirectory, "docs", "adventure-authoring-guide.md");
+    return File.Exists(manualPath)
+        ? Results.File(manualPath, "text/markdown; charset=utf-8")
+        : Results.NotFound();
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
