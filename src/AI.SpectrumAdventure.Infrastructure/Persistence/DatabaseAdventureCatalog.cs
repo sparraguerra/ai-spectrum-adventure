@@ -17,11 +17,26 @@ public sealed class DatabaseAdventureCatalog(AdventureDbContext? dbContext, stri
 
         await SeedFromLocalFilesWhenEmptyAsync(cancellationToken);
 
-        return await dbContext.Adventures
+        var adventures = await dbContext.Adventures
             .AsNoTracking()
             .OrderBy(adventure => adventure.Title)
             .Select(adventure => new AdventureCatalogItem(adventure.Id, adventure.Title))
             .ToListAsync(cancellationToken);
+        var publishedVersions = await dbContext.AdventureVersions
+            .AsNoTracking()
+            .OrderByDescending(version => version.Sequence)
+            .Select(version => new { version.AdventureIdentifier, version.DefinitionJson })
+            .ToListAsync(cancellationToken);
+        var catalog = adventures.ToDictionary(adventure => adventure.Id, StringComparer.OrdinalIgnoreCase);
+        foreach (var version in publishedVersions)
+        {
+            if (!catalog.ContainsKey(version.AdventureIdentifier))
+            {
+                catalog[version.AdventureIdentifier] = ReadSummary(version.DefinitionJson);
+            }
+        }
+
+        return [.. catalog.Values.OrderBy(adventure => adventure.Title)];
     }
 
     public async Task<string> GetDefinitionJsonAsync(string adventureId, CancellationToken cancellationToken = default)

@@ -200,6 +200,7 @@
 - [X] T053 Update local setup and Feature 003 validation documentation in `README.md` and `specs/003-ai-adventure-editor/quickstart.md`
 - [X] T054 Run `dotnet test` and `az bicep build --file infra/main.bicep` from the repository root, resolving Feature 003 regressions.
 - [X] T055 Measure save-and-validate latency for a small draft and verify the p95 completes within 2 seconds in `tests/AI.SpectrumAdventure.IntegrationTests/AuthoringPerformanceTests.cs`
+- [X] T056 [US7] Fix authored item command resolution so simple names such as `Take Screwdriver` map to stable item IDs instead of returning `AmbiguousIntent` in `src/AI.SpectrumAdventure.Agents/Intent/WorldVocabulary.cs`; add regression coverage in `tests/AI.SpectrumAdventure.Agents.Tests/CommandPatternInterpreterTests.cs`.
 
 ## Dependencies
 
@@ -225,4 +226,4 @@ Foundation (T001-T010)
 
 ## Implementation Strategy
 
-The first MVP is T001-T019: authors can create persistent drafts and a valid world manually without AI. Add advanced content, publication/versioning, and playtesting before AI proposals. Finish with optional previews and the user manual. Every accepted change and published version must remain deterministic and auditable.
+The first MVP is T001-T019: authors can create persistent drafts and a valid world manually without AI. Add advanced content, publication/versioning, and playtesting before AI proposals. Finish with optional previews and the user manual. Every accepted change and published version must remain deterministic and auditable. Command targets from authored definitions must resolve through stable IDs, including simple natural-language forms such as `Take Screwdriver`.

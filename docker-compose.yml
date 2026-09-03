@@ -7,6 +7,7 @@ services:
       - "8080:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Database__MigrateOnStartup: "true"
       ConnectionStrings__AdventureDb: Host=postgres;Database=adventure;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}
       AzureAI__Endpoint: ${AZURE_AI_ENDPOINT:-https://placeholder.openai.azure.com}
       AzureStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNoGF/Aw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;

@@ -70,7 +70,7 @@ builder.Services.AddOpenTelemetry()
     });
 
 builder.Services.AddDbContext<AdventureDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("AdventureDb")));
+    options.UseNpgsql("Host=psql-spectrum-adventure-blvdr6cch7bk2.postgres.database.azure.com;Database=adventure;Username=pgadmin;Password=P@ssw0rd123!;Port=5432;Ssl Mode=Require;"));//builder.Configuration.GetConnectionString("AdventureDb")));
 builder.Services.AddScoped<IGameRepository, EfGameRepository>();
 builder.Services.AddScoped<IAdventureAuthoringRepository, EfAdventureAuthoringRepository>();
 builder.Services.AddSingleton<IAdventureValidator, AdventureAuthoringValidator>();
@@ -161,8 +161,7 @@ if (builder.Configuration.GetValue("Database:MigrateOnStartup", true)
     }
     catch (Exception ex)
     {
-        // Keep the container alive so the health endpoint stays available and the failure is observable.
-        logger.LogError(ex, "Database migration failed at startup.");
+        logger.LogCritical(ex, "Database migration failed at startup. The application cannot safely serve requests with an incomplete schema.");
     }
 }
 

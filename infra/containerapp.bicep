@@ -84,6 +84,10 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               value: 'Production'
             }
             {
+              name: 'Database__MigrateOnStartup'
+              value: 'true'
+            }
+            {
               name: 'ConnectionStrings__AdventureDb'
               secretRef: 'postgres-connection'
             }

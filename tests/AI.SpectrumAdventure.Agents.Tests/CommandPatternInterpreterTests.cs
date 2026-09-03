@@ -47,6 +47,16 @@ public class CommandPatternInterpreterTests
     }
 
     [Fact]
+    public void TryInterpret_AuthoredItemName_ResolvesToStableItemId()
+    {
+        var intent = CommandPatternInterpreter.TryInterpret("Take Screwdriver");
+
+        intent.Should().NotBeNull();
+        intent!.Action.Should().Be(IntentAction.Take);
+        intent.Target.Should().Be("screwdriver");
+    }
+
+    [Fact]
     public void TryInterpret_ExamineDoor_ResolvesToExamineTowerEntrance()
     {
         var intent = CommandPatternInterpreter.TryInterpret("examine door");

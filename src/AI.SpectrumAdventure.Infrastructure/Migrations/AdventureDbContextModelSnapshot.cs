@@ -183,39 +183,6 @@ namespace AI.SpectrumAdventure.Infrastructure.Migrations
                     b.ToTable("authoring_proposals", (string)null);
                 });
 
-            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.PlaytestSessionRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DraftId")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("DraftRevision")
-                        .HasColumnType("bigint");
-
-                    b.Property<Guid>("GameId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("StartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("SourceVersionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SnapshotHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GameId")
-                        .IsUnique();
-
-                    b.ToTable("playtest_sessions", (string)null);
-                });
-
             modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.GameRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -310,6 +277,39 @@ namespace AI.SpectrumAdventure.Infrastructure.Migrations
                     b.HasIndex("WorldId");
 
                     b.ToTable("world_lore", (string)null);
+                });
+
+            modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.PlaytestSessionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DraftId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("DraftRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SnapshotHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SourceVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId")
+                        .IsUnique();
+
+                    b.ToTable("playtest_sessions", (string)null);
                 });
 
             modelBuilder.Entity("AI.SpectrumAdventure.Infrastructure.Persistence.RegionRecord", b =>

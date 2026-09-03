@@ -55,6 +55,8 @@ Add an in-application Adventure Editor to the existing modular monolith. The edi
 
 **Playtest**: valid draft -> immutable draft snapshot with source identity -> existing `AdventureWorldFactory` and game creation path.
 
+**Command target resolution**: authored item names use their stable definition IDs as a fallback vocabulary, so commands such as `Take Screwdriver` resolve to `screwdriver` without requiring a hard-coded entry for every adventure.
+
 **Restore**: version selection -> copy immutable JSON to a new draft revision; never mutate the selected version.
 
 ## Project Structure
@@ -88,6 +90,7 @@ docs/adventure-authoring-guide.md
 4. Add draft playtests through the existing game engine.
 5. Add reviewable AI proposals after manual authoring is reliable.
 6. Add optional retro previews, telemetry, the authoring manual, and end-to-end regression coverage.
+7. Maintain command-resolution regression coverage when authored content introduces new item names; simple names normalize to stable IDs and must not become `AmbiguousIntent`.
 
 ## Post-Design Re-check
 
