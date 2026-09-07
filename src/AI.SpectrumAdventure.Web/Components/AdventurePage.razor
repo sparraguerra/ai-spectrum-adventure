@@ -4,13 +4,17 @@
 @using AI.SpectrumAdventure.Application.Orchestration
 @using AI.SpectrumAdventure.Application.Abstractions
 @using AI.SpectrumAdventure.Contracts
+@using AI.SpectrumAdventure.Domain.Common
 @using AI.SpectrumAdventure.Domain.Games
 @using AI.SpectrumAdventure.Application.Worlds
+@using AI.SpectrumAdventure.Application.Rules
 
 @inject IGameRepository GameRepository
 @inject IWorldRepository WorldRepository
 @inject ExploreUnknownDirectionUseCase ExploreUnknownDirectionUseCase
 @inject IIntentInterpreter IntentInterpreter
+@inject INarratorAgent NarratorAgent
+@inject INpcAgent NpcAgent
 @inject IVisualArtDirector VisualArtDirector
 @inject IImagePipeline ImagePipeline
 @inject IVisualAssetRepository VisualAssetRepository
@@ -104,12 +108,6 @@
                         </div>
                     </div>
 
-                    <div class="card shadow-sm border-0">
-                        <div class="card-body">
-                            <NpcDialoguePanel Game="CurrentGame" />
-                        </div>
-                    </div>
-
                     @if (CurrentWorld is not null)
                     {
                         <div class="card shadow-sm border-0 mt-4">
@@ -180,7 +178,24 @@
         try
         {
             var intent = await IntentInterpreter.InterpretAsync(input);
-            var result = await AdventureOrchestrator.ProcessActionAsync(CurrentGame, intent, ExploreUnknownDirectionUseCase);
+            ActionResult result;
+
+            if (intent.Action == IntentAction.TalkTo &&
+                intent.Target is not null &&
+                intent.Parameters.TryGetValue("utterance", out var utterance))
+            {
+                result = await NpcConversationOrchestrator.ConverseAsync(CurrentGame, new NpcId(intent.Target), utterance, NpcAgent);
+            }
+            else
+            {
+                var isUnknownDirection = intent.Action == IntentAction.Go &&
+                    intent.Target is not null &&
+                    MovementRules.Validate(intent.Target, CurrentGame).Reason == RulesFailureReason.NoSuchExit;
+                result = isUnknownDirection
+                    ? await AdventureOrchestrator.ProcessActionAsync(CurrentGame, intent, ExploreUnknownDirectionUseCase)
+                    : await AdventureOrchestrator.ProcessActionWithNarrationAsync(CurrentGame, intent, NarratorAgent);
+            }
+
             CurrentWorld = CurrentGame.WorldId is { } worldId ? await WorldRepository.FindAsync(worldId) : null;
             LastResult = await VisualSceneOrchestrator.AttachVisualAsync(
                 CurrentGame,
@@ -198,4 +213,5 @@
             IsProcessing = false;
         }
     }
+
 }

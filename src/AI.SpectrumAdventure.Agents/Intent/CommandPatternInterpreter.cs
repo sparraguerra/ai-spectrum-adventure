@@ -49,6 +49,15 @@ public static partial class CommandPatternInterpreter
             return Intent(IntentAction.Open, openTarget, rawInput);
         }
 
+        var dialogueMatch = DialoguePattern().Match(trimmed);
+        if (dialogueMatch.Success && WorldVocabulary.TryResolveTarget(dialogueMatch.Groups["target"].Value, out var dialogueTarget))
+        {
+            return Intent(IntentAction.TalkTo, dialogueTarget, rawInput, new Dictionary<string, string>
+            {
+                ["utterance"] = dialogueMatch.Groups["utterance"].Value,
+            });
+        }
+
         var talkMatch = TalkPattern().Match(trimmed);
         if (talkMatch.Success && WorldVocabulary.TryResolveTarget(talkMatch.Groups["target"].Value, out var talkTarget))
         {
@@ -94,6 +103,9 @@ public static partial class CommandPatternInterpreter
 
     [GeneratedRegex(@"^(talk\s+to|talk|speak\s+to|speak\s+with)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
     private static partial Regex TalkPattern();
+
+    [GeneratedRegex(@"^(talk\s+to|talk|speak\s+to|speak\s+with)\s+(?<target>.+?)\s+""(?<utterance>.+)""$", RegexOptions.IgnoreCase)]
+    private static partial Regex DialoguePattern();
 
     [GeneratedRegex(@"^(use)\s+(?<item>[^,]+?)(\s+on\s+(?<ontarget>.+))?$", RegexOptions.IgnoreCase)]
     private static partial Regex UsePattern();

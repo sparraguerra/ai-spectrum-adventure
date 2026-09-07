@@ -33,7 +33,9 @@ builder.Services.AddRazorComponents()
 
 var applicationInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
 
-builder.Services.AddOpenTelemetry()
+if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+{
+    builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
     .WithTracing(tracing =>
     {
@@ -68,9 +70,13 @@ builder.Services.AddOpenTelemetry()
             metrics.AddAzureMonitorMetricExporter(options => options.ConnectionString = applicationInsightsConnectionString);
         }
     });
+}
+
+var adventureDbConnectionString = builder.Configuration.GetConnectionString("AdventureDb")
+    ?? throw new InvalidOperationException("ConnectionStrings:AdventureDb must be configured.");
 
 builder.Services.AddDbContext<AdventureDbContext>(options =>
-    options.UseNpgsql("Host=psql-spectrum-adventure-blvdr6cch7bk2.postgres.database.azure.com;Database=adventure;Username=pgadmin;Password=P@ssw0rd123!;Port=5432;Ssl Mode=Require;"));//builder.Configuration.GetConnectionString("AdventureDb")));
+    options.UseNpgsql(adventureDbConnectionString));
 builder.Services.AddScoped<IGameRepository, EfGameRepository>();
 builder.Services.AddScoped<IAdventureAuthoringRepository, EfAdventureAuthoringRepository>();
 builder.Services.AddSingleton<IAdventureValidator, AdventureAuthoringValidator>();
@@ -113,7 +119,11 @@ builder.Services.AddSingleton<IAgentRunner>(sp =>
 {
     var endpoint = builder.Configuration["AzureAI:Endpoint"];
     var deployment = builder.Configuration["AzureAI:ChatDeployment"] ?? "gpt-4o-mini";
-    var client = new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new DefaultAzureCredential());
+    var apiKey = builder.Configuration["AzureAI:ApiKey"];
+
+    var client = apiKey is not null
+        ? new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new System.ClientModel.ApiKeyCredential(apiKey))
+        : new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new DefaultAzureCredential());
     AIAgent agent = client.GetChatClient(deployment).AsIChatClient().AsAIAgent(
         instructions: "You are a component of a text adventure game engine. Follow the per-request instructions exactly.",
         name: "AdventureAgent");
@@ -132,8 +142,11 @@ builder.Services.AddHostedService<ImageGenerationWorker>();
 builder.Services.AddScoped<AI.SpectrumAdventure.Application.Abstractions.IImageGenerator>(sp =>
 {
     var endpoint = builder.Configuration["AzureAI:Endpoint"];
-    var deployment = builder.Configuration["AzureAI:ImageDeployment"] ?? "dall-e-3";
-    var client = new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new DefaultAzureCredential());
+    var deployment = builder.Configuration["AzureAI:ImageDeployment"] ?? "gpt-4o-mini";
+    var apiKey = builder.Configuration["AzureAI:ApiKey"];
+    var client = apiKey is not null
+        ? new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new System.ClientModel.ApiKeyCredential(apiKey))
+        : new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new DefaultAzureCredential());
     return new AzureOpenAiImageGenerator(client.GetImageClient(deployment));
 });
 builder.Services.AddScoped<IRetroImageProcessor, RetroImageProcessor>();

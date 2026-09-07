@@ -1,4 +1,5 @@
 @using AI.SpectrumAdventure.Domain.Games
+@using AI.SpectrumAdventure.Domain.Common
 
 @if (Game is not null)
 {
@@ -20,10 +21,65 @@
                     </li>
                 }
             </ul>
+
+            <form class="mt-3" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+                <label class="form-label" for="npc-dialogue-target">Talk to</label>
+                <select id="npc-dialogue-target" class="form-select mb-2" @bind="SelectedNpcId" disabled="@Disabled">
+                    @foreach (var npcId in Game.CurrentLocation.NpcIds)
+                    {
+                        <option value="@npcId.Value">@Game.GetNpc(npcId).Name</option>
+                    }
+                </select>
+                <label class="visually-hidden" for="npc-dialogue-input">NPC dialogue</label>
+                <div class="input-group">
+                    <input id="npc-dialogue-input" class="form-control" type="text" placeholder="Say something..."
+                           disabled="@Disabled" @bind="CurrentUtterance" @bind:event="oninput" />
+                    <button class="btn btn-secondary" type="submit" disabled="@Disabled">Talk</button>
+                </div>
+            </form>
         }
     </div>
 }
 
 @code {
     [Parameter] public Game? Game { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public EventCallback<NpcDialogueRequest> OnSubmit { get; set; }
+
+    private string? SelectedNpcId { get; set; }
+    private string CurrentUtterance { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (Game is null)
+        {
+            return;
+        }
+
+        var npcIds = Game.CurrentLocation.NpcIds;
+        if (npcIds.Count == 0)
+        {
+            SelectedNpcId = null;
+            return;
+        }
+
+        if (SelectedNpcId is null || !npcIds.Any(npcId => npcId.Value == SelectedNpcId))
+        {
+            SelectedNpcId = npcIds.First().Value;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (Game is null || string.IsNullOrWhiteSpace(SelectedNpcId) || string.IsNullOrWhiteSpace(CurrentUtterance))
+        {
+            return;
+        }
+
+        var utterance = CurrentUtterance;
+        CurrentUtterance = string.Empty;
+        await OnSubmit.InvokeAsync(new NpcDialogueRequest(new NpcId(SelectedNpcId), utterance));
+    }
 }

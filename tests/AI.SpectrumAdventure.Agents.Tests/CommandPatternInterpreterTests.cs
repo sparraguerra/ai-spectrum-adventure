@@ -78,6 +78,17 @@ public class CommandPatternInterpreterTests
     }
 
     [Fact]
+    public void TryInterpret_QuotedNpcDialogue_ResolvesNpcAndCapturesUtterance()
+    {
+        var intent = CommandPatternInterpreter.TryInterpret("Talk to the hermit \"I want to go to the tower\"");
+
+        intent.Should().NotBeNull();
+        intent!.Action.Should().Be(IntentAction.TalkTo);
+        intent.Target.Should().Be("hermit");
+        intent.Parameters.Should().ContainKey("utterance").WhoseValue.Should().Be("I want to go to the tower");
+    }
+
+    [Fact]
     public void TryInterpret_UnrecognizableGibberish_ReturnsNull()
     {
         CommandPatternInterpreter.TryInterpret("asdlkjqwoiuxpvz").Should().BeNull();

@@ -1,5 +1,6 @@
 services:
   web:
+    container_name: web
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,8 +9,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Database__MigrateOnStartup: "true"
-      ConnectionStrings__AdventureDb: Host=postgres;Database=adventure;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}
-      AzureAI__Endpoint: ${AZURE_AI_ENDPOINT:-https://placeholder.openai.azure.com}
+      ConnectionStrings__AdventureDb: Host=postgres;Database=adventure;Username=postgres;Password=${POSTGRES_PASSWORD};SSL Mode=Disable;
+      AzureAI__Endpoint: ${AZURE_AI_ENDPOINT}
       AzureStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNoGF/Aw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
     depends_on:
       postgres:
@@ -19,23 +20,28 @@ services:
 
   postgres:
     image: postgres:16
+    container_name: postgres
     environment:
       POSTGRES_DB: adventure
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d adventure"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+     test: ["CMD-SHELL", "pg_isready -U postgres -d adventure"]
+     interval: 5s
+     timeout: 5s
+     retries: 10
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    container_name: azurite
     command: azurite-blob --blobHost 0.0.0.0
     volumes:
-      - azurite-data:/data
+      - ./azurite-data:/data
 
 volumes:
   postgres-data:
