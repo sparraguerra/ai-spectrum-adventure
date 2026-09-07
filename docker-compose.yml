@@ -10,8 +10,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       Database__MigrateOnStartup: "true"
       ConnectionStrings__AdventureDb: Host=postgres;Database=adventure;Username=postgres;Password=${POSTGRES_PASSWORD};SSL Mode=Disable;
+      AzureAI__ApiKey: ${AZURE_AI_API_KEY}
       AzureAI__Endpoint: ${AZURE_AI_ENDPOINT}
-      AzureStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNoGF/Aw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      AzureStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
     depends_on:
       postgres:
         condition: service_healthy
