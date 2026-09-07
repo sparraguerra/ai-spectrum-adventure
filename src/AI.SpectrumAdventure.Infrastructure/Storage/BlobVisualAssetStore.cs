@@ -9,6 +9,8 @@ public sealed class BlobVisualAssetStore(BlobContainerClient containerClient) : 
 {
     public async Task<string> UploadAsync(string sceneStateKey, byte[] processedImageBytes, CancellationToken cancellationToken = default)
     {
+        await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+
         var blobName = $"{Uri.EscapeDataString(sceneStateKey)}.png";
         var blobClient = containerClient.GetBlobClient(blobName);
 

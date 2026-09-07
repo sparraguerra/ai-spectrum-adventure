@@ -12,7 +12,7 @@ services:
       ConnectionStrings__AdventureDb: Host=postgres;Database=adventure;Username=postgres;Password=${POSTGRES_PASSWORD};SSL Mode=Disable;
       AzureAI__ApiKey: ${AZURE_AI_API_KEY}
       AzureAI__Endpoint: ${AZURE_AI_ENDPOINT}
-      AzureStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      AzureStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,9 +38,9 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    image: mcr.microsoft.com/azure-storage/azurite:latest
     container_name: azurite
-    command: azurite-blob --blobHost 0.0.0.0
+    command: azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
     volumes:
       - ./azurite-data:/data
 
