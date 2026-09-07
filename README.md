@@ -46,6 +46,21 @@ EF Core creates the `games` table automatically via `dbContext.Database.EnsureCr
 
 For full local setup (secrets, Azure AI configuration) and manual validation scenarios, see [specs/001-conversational-adventure-mvp/quickstart.md](specs/001-conversational-adventure-mvp/quickstart.md).
 
+For the complete author workflow, including the editor example, validation, publication, version restore, AI proposal boundaries, and playtesting, see [docs/adventure-authoring-guide.md](docs/adventure-authoring-guide.md).
+
+### Feature 003 validation and resilience
+
+Authoring operations emit OpenTelemetry spans and metrics through the existing `AI.SpectrumAdventure.Application` source. Telemetry records operation names, outcomes, and durations, but not prompts, draft definitions, or image bytes. Retro previews are optional: a failed visual agent or image generator leaves the factual scene summary available and never blocks saving, validation, publication, or playtesting.
+
+Run the Feature 003 checks from the repository root:
+
+```powershell
+dotnet test
+az bicep build --file infra/main.bicep
+```
+
+The authoring integration suite also checks optimistic-concurrency conflicts, publish races (at most one version for a draft revision), preview fallback, and p95 save-plus-validation latency for a small draft. If Azure CLI is unavailable locally, run the `dotnet test` command and record the Bicep check as skipped; CI or an Azure CLI-enabled environment must run the Bicep validation.
+
 ### Dynamic world validation
 
 Feature 002 stores generated worlds, lore, NPC placement, puzzle consequences, and presentation metadata in the same `AdventureDb` connection used by the existing application. Apply the included migrations before manual testing:

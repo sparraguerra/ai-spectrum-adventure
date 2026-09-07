@@ -1,4 +1,11 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Dockerfile" />
+    <File Path="README.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/AI.SpectrumAdventure.Agents/AI.SpectrumAdventure.Agents.csproj" />
     <Project Path="src/AI.SpectrumAdventure.Application/AI.SpectrumAdventure.Application.csproj" />
@@ -13,4 +20,7 @@
     <Project Path="tests/AI.SpectrumAdventure.Domain.Tests/AI.SpectrumAdventure.Domain.Tests.csproj" />
     <Project Path="tests/AI.SpectrumAdventure.IntegrationTests/AI.SpectrumAdventure.IntegrationTests.csproj" />
   </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
 </Solution>

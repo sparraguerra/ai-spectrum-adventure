@@ -1,0 +1,52 @@
+@using AI.SpectrumAdventure.Application.Authoring
+@using AI.SpectrumAdventure.Domain.Authoring
+@using AI.SpectrumAdventure.Domain.Games
+@inject StartPlaytestUseCase Playtests
+
+<section aria-label="Playtest">
+    <h2>Playtest</h2>
+    <button type="button" @onclick="StartAsync" disabled="@(DraftId is null || IsStarting)">
+        @(IsStarting ? "Starting..." : "Start playtest")
+    </button>
+
+    @if (Result is not null)
+    {
+        <p role="status">@Message</p>
+        @if (Result.Started && Result.Game is not null)
+        {
+            <p>Game @Result.Game.Id.Value started at @Result.Game.CurrentLocation.Name.</p>
+        }
+        @if (Result.Issues.Count > 0)
+        {
+            <ul>
+                @foreach (var issue in Result.Issues)
+                {
+                    <li>@issue</li>
+                }
+            </ul>
+        }
+    }
+</section>
+
+@code {
+    [Parameter] public AdventureDraftId? DraftId { get; set; }
+    [Parameter] public long Revision { get; set; }
+
+    private StartPlaytestUseCaseResult? Result;
+    private bool IsStarting;
+    private string Message => Result?.Started == true ? "Playtest started." : "Playtest could not start.";
+
+    private async Task StartAsync()
+    {
+        if (DraftId is null || IsStarting) return;
+        IsStarting = true;
+        try
+        {
+            Result = await Playtests.ExecuteAsync(DraftId.Value, Revision);
+        }
+        finally
+        {
+            IsStarting = false;
+        }
+    }
+}

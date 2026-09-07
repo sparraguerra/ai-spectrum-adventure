@@ -5,6 +5,7 @@ using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Events;
 using AI.SpectrumAdventure.Domain.Games;
 using AI.SpectrumAdventure.Application.Worlds;
+using AI.SpectrumAdventure.Domain.Authoring;
 
 /// <summary>FR-001: begins a new adventure at the Forest Entrance and persists it.</summary>
 public sealed class StartGameUseCase
@@ -20,12 +21,34 @@ public sealed class StartGameUseCase
         this.worldRepository = worldRepository;
     }
 
-    public async Task<Game> ExecuteAsync(string? adventureId = null, CancellationToken cancellationToken = default)
+    public async Task<Game> ExecuteAsync(string? adventureId = null, AdventureVersionId? adventureVersionId = null, CancellationToken cancellationToken = default)
     {
         var selectedAdventureId = string.IsNullOrWhiteSpace(adventureId) ? AdventureWorldFactory.DefaultAdventureId : adventureId;
-        var game = adventureCatalog is null
+        var selection = adventureCatalog is null ? null : await adventureCatalog.GetDefinitionAsync(selectedAdventureId, adventureVersionId, cancellationToken);
+        var game = selection is null
             ? AdventureWorldFactory.CreateNewGame(GameId.New(), DateTimeOffset.UtcNow, selectedAdventureId)
-            : AdventureWorldFactory.CreateNewGameFromJson(GameId.New(), DateTimeOffset.UtcNow, await adventureCatalog.GetDefinitionJsonAsync(selectedAdventureId, cancellationToken));
+            : await CreateAndPersistAsync(selection.AdventureId, selection.DefinitionJson, selection.VersionId, cancellationToken);
+
+        if (selection is null)
+        {
+            await InitializeAndPersistAsync(game, cancellationToken);
+        }
+
+        return game;
+    }
+
+    public Task<Game> ExecuteFromDefinitionAsync(string adventureId, string definitionJson, AdventureVersionId? adventureVersionId = null, CancellationToken cancellationToken = default) =>
+        CreateAndPersistAsync(adventureId, definitionJson, adventureVersionId, cancellationToken);
+
+    private async Task<Game> CreateAndPersistAsync(string adventureId, string definitionJson, AdventureVersionId? adventureVersionId, CancellationToken cancellationToken)
+    {
+        var game = AdventureWorldFactory.CreateNewGameFromJson(GameId.New(), DateTimeOffset.UtcNow, definitionJson, adventureVersionId);
+        await InitializeAndPersistAsync(game, cancellationToken);
+        return game;
+    }
+
+    private async Task InitializeAndPersistAsync(Game game, CancellationToken cancellationToken)
+    {
 
         game.Apply(new LocationDiscoveredEvent(Guid.NewGuid(), game.CreatedAt, game.Player.CurrentLocationId));
 
@@ -43,6 +66,5 @@ public sealed class StartGameUseCase
             game.PlayerKnowledge.DiscoverLocation(startingLocation.Id, game.CreatedAt);
             await worldRepository.CreateInitialWorldAsync(world, game, cancellationToken);
         }
-        return game;
     }
 }

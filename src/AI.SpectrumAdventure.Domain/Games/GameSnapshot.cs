@@ -1,5 +1,7 @@
 namespace AI.SpectrumAdventure.Domain.Games;
 
+using AI.SpectrumAdventure.Domain.Authoring;
+
 /// <summary>
 /// A fully serializable, flat mirror of a Game aggregate's state, used only at the persistence boundary
 /// (Infrastructure serializes/deserializes this; the Domain remains unaware of EF Core or JSON).
@@ -19,7 +21,8 @@ public sealed record GameSnapshot(
     List<GameEventSnapshot> EventHistory,
     string? WorldId = null,
     PlayerKnowledgeSnapshot? PlayerKnowledge = null,
-    List<PuzzleSnapshot>? Puzzles = null);
+    List<PuzzleSnapshot>? Puzzles = null,
+    Guid? AdventureVersionId = null);
 
 public sealed record PlayerSnapshot(string CurrentLocationId, List<string> InventoryItemIds, List<string> KnownClues);
 

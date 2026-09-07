@@ -66,6 +66,33 @@ public sealed class DatabaseAdventureCatalogTests : IDisposable
         json.Should().NotContain("Packaged Crystal Mine");
     }
 
+    [Fact]
+    public async Task ListAsync_IncludesPublishedAdventureVersions()
+    {
+        await using var dbContext = CreateDbContext();
+        await dbContext.Database.EnsureCreatedAsync();
+        dbContext.AdventureVersions.Add(new AdventureVersionRecord
+        {
+            Id = Guid.NewGuid(),
+            DraftId = Guid.NewGuid(),
+            AdventureIdentifier = "derelict-beacon",
+            Sequence = 1,
+            DefinitionJson = """
+            {
+              "id": "derelict-beacon",
+              "title": "The Derelict Beacon"
+            }
+            """,
+            PublishedAt = DateTimeOffset.UtcNow,
+        });
+        await dbContext.SaveChangesAsync();
+        var catalog = new DatabaseAdventureCatalog(dbContext, adventureDirectory);
+
+        var adventures = await catalog.ListAsync();
+
+        adventures.Should().ContainSingle(item => item.Id == "derelict-beacon" && item.Title == "The Derelict Beacon");
+    }
+
     private Task WriteAdventureAsync(string id, string title) =>
         File.WriteAllTextAsync(Path.Combine(adventureDirectory, $"{id}.json"), $$"""
         {

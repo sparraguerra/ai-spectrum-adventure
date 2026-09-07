@@ -80,6 +80,424 @@ body {
     box-shadow: none;
 }
 
+.authoring-workspace {
+    width: min(1320px, calc(100vw - 3rem));
+    margin: 0 auto;
+    padding: 2rem 0 5rem;
+}
+
+.authoring-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--spectrum-line);
+}
+
+.authoring-kicker,
+.section-index {
+    margin: 0 0 0.45rem;
+    color: var(--spectrum-cyan);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.authoring-header h1 {
+    margin: 0;
+    color: var(--spectrum-yellow);
+    font-size: clamp(2rem, 5vw, 3.7rem);
+    line-height: 0.95;
+}
+
+.authoring-lede {
+    max-width: 40rem;
+    margin: 0.8rem 0 0;
+    color: var(--spectrum-muted);
+    font-size: 0.95rem;
+}
+
+.authoring-guide-link {
+    flex: 0 0 auto;
+    color: var(--spectrum-paper);
+    font-size: 0.82rem;
+    text-decoration: none;
+}
+
+.authoring-guide-link:hover {
+    color: var(--spectrum-yellow);
+}
+
+.authoring-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+    align-items: start;
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+}
+
+.authoring-main-column,
+.authoring-side-column {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+.authoring-side-column {
+    position: sticky;
+    top: 1rem;
+}
+
+.authoring-panel,
+.authoring-panel-grid > section {
+    border: 1px solid var(--spectrum-line);
+    background: rgb(16 18 27 / 0.88);
+    box-shadow: 4px 4px 0 rgb(79 228 255 / 0.08);
+}
+
+.authoring-panel {
+    padding: 1.15rem;
+}
+
+.authoring-panel h2,
+.authoring-section h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.authoring-panel h2 {
+    color: var(--spectrum-paper);
+}
+
+.panel-heading,
+.section-heading-row {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.draft-state,
+.validation-count {
+    padding: 0.28rem 0.45rem;
+    border: 1px solid var(--spectrum-cyan);
+    color: var(--spectrum-cyan);
+    font-size: 0.65rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.authoring-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.authoring-field {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.authoring-field-wide {
+    grid-column: span 2;
+}
+
+.authoring-field label {
+    color: var(--spectrum-paper);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.label-optional {
+    color: var(--spectrum-muted);
+    font-size: 0.62rem;
+    font-weight: 400;
+    text-transform: uppercase;
+}
+
+.field-hint {
+    color: var(--spectrum-muted);
+    font-size: 0.68rem;
+}
+
+.authoring-field .form-control {
+    min-height: 2.6rem;
+    padding: 0.65rem 0.75rem;
+}
+
+.authoring-field textarea.form-control {
+    min-height: 8rem;
+    resize: vertical;
+}
+
+.authoring-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--spectrum-line);
+}
+
+.authoring-actions .btn,
+.authoring-panel button {
+    min-height: 2.35rem;
+    border-radius: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.authoring-actions .btn-outline-light {
+    border: 1px solid var(--spectrum-muted);
+    color: var(--spectrum-paper);
+}
+
+.authoring-actions .btn-accent {
+    border: 1px solid var(--spectrum-magenta);
+    background: transparent;
+    color: var(--spectrum-magenta);
+}
+
+.authoring-actions .btn-accent:hover:not(:disabled) {
+    background: var(--spectrum-magenta);
+    color: var(--spectrum-ink);
+}
+
+.authoring-status {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid var(--spectrum-green);
+    background: rgb(91 202 116 / 0.1);
+    color: var(--spectrum-paper);
+    font-size: 0.78rem;
+}
+
+.authoring-status span {
+    color: var(--spectrum-green);
+    font-weight: 700;
+}
+
+.authoring-section {
+    display: grid;
+    gap: 1rem;
+}
+
+.section-description {
+    max-width: 19rem;
+    margin: 0;
+    color: var(--spectrum-muted);
+    font-size: 0.72rem;
+    line-height: 1.45;
+    text-align: right;
+}
+
+.authoring-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.authoring-panel-grid > section {
+    padding: 0.9rem;
+}
+
+.authoring-panel-grid > section h2 {
+    margin-bottom: 0.75rem;
+    color: var(--spectrum-yellow);
+    font-size: 0.82rem;
+}
+
+.authoring-panel-grid > section form,
+.authoring-panel-grid > section > form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: 0.55rem;
+}
+
+.authoring-panel-grid > section input,
+.authoring-panel-grid > section textarea,
+.authoring-panel-grid > section select {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.15rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--spectrum-line);
+    border-radius: 0;
+    background: #171c2b;
+    color: var(--spectrum-paper);
+    font: inherit;
+    font-size: 0.68rem;
+}
+
+.authoring-panel-grid > section textarea {
+    min-height: 4.2rem;
+    resize: vertical;
+}
+
+.authoring-panel-grid > section button {
+    grid-column: 1 / -1;
+    justify-self: start;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--spectrum-cyan);
+    background: transparent;
+    color: var(--spectrum-cyan);
+}
+
+.authoring-panel-grid > section button:hover {
+    background: var(--spectrum-cyan);
+    color: var(--spectrum-ink);
+}
+
+.validation-panel {
+    border-color: var(--spectrum-red);
+}
+
+.validation-panel .section-index,
+.validation-count {
+    color: var(--spectrum-red);
+}
+
+.validation-count {
+    border-color: var(--spectrum-red);
+}
+
+.validation-list {
+    display: grid;
+    gap: 0.55rem;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.validation-list li {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.55rem 0.7rem;
+    border-left: 2px solid var(--spectrum-red);
+    background: rgb(243 91 83 / 0.08);
+    font-size: 0.72rem;
+}
+
+.validation-list li span {
+    color: var(--spectrum-muted);
+}
+
+.workflow-list {
+    display: grid;
+    gap: 0.15rem;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.workflow-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem 0.45rem;
+    border-bottom: 1px solid rgb(48 56 76 / 0.7);
+    color: var(--spectrum-muted);
+}
+
+.workflow-list li:last-child {
+    border-bottom: 0;
+}
+
+.workflow-list li > span {
+    color: var(--spectrum-line);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.workflow-list strong,
+.workflow-list small {
+    display: block;
+}
+
+.workflow-list strong {
+    color: var(--spectrum-paper);
+    font-size: 0.75rem;
+}
+
+.workflow-list small {
+    margin-top: 0.15rem;
+    font-size: 0.62rem;
+}
+
+.workflow-list .workflow-active {
+    border-left: 2px solid var(--spectrum-yellow);
+    background: rgb(247 230 59 / 0.06);
+}
+
+.workflow-list .workflow-active > span {
+    color: var(--spectrum-yellow);
+}
+
+.authoring-side-column > section:not(.workflow-panel) h2 {
+    color: var(--spectrum-paper);
+}
+
+.authoring-side-column > section:not(.workflow-panel) {
+    margin: 0;
+}
+
+.authoring-side-column .retro-scene-frame,
+.authoring-side-column img {
+    max-width: 100%;
+}
+
+@media (max-width: 900px) {
+    .authoring-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .authoring-side-column {
+        position: static;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .workflow-panel,
+    .authoring-side-column > section:last-child {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 640px) {
+    .authoring-workspace {
+        width: min(100% - 1.5rem, 40rem);
+        padding-top: 1.25rem;
+    }
+
+    .authoring-header,
+    .section-heading-row {
+        display: grid;
+    }
+
+    .authoring-guide-link,
+    .section-description {
+        text-align: left;
+    }
+
+    .authoring-field-grid,
+    .authoring-panel-grid,
+    .authoring-side-column {
+        grid-template-columns: 1fr;
+    }
+
+    .authoring-field-wide,
+    .workflow-panel,
+    .authoring-side-column > section:last-child {
+        grid-column: auto;
+    }
+
+    .panel-heading {
+        align-items: start;
+    }
+}
+
 .retro-scene-frame {
     position: relative;
     aspect-ratio: 4 / 3;

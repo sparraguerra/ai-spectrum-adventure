@@ -1,5 +1,7 @@
 namespace AI.SpectrumAdventure.Agents.Intent;
 
+using System.Text.RegularExpressions;
+
 /// <summary>Shared vocabulary (directions, item/NPC/puzzle-target synonyms) used by both the deterministic
 /// pattern matcher and the keyword fallback classifier, so both resolve free text to the same canonical ids.</summary>
 internal static class WorldVocabulary
@@ -48,7 +50,14 @@ internal static class WorldVocabulary
             cleaned = cleaned[4..].Trim();
         }
 
-        return Targets.TryGetValue(cleaned, out targetId!);
+        if (Targets.TryGetValue(cleaned, out targetId!))
+        {
+            return true;
+        }
+
+        // Adventure-authored items use stable ids, so simple names can resolve without a hard-coded vocabulary entry.
+        targetId = Regex.Replace(cleaned.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+        return targetId.Length > 0;
     }
 
     /// <summary>Best-effort scan for any known target phrase appearing anywhere in free-form text (used by the keyword fallback).</summary>

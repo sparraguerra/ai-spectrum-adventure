@@ -3,9 +3,11 @@ using AI.SpectrumAdventure.Agents.ImagePipeline;
 using AI.SpectrumAdventure.Agents.Narrator;
 using AI.SpectrumAdventure.Agents.Npc;
 using AI.SpectrumAdventure.Agents.WorldEnrichment;
+using AI.SpectrumAdventure.Agents.Authoring;
 using AI.SpectrumAdventure.Agents.Intent;
 using AI.SpectrumAdventure.Agents.VisualArtDirector;
 using AI.SpectrumAdventure.Application.Abstractions;
+using AI.SpectrumAdventure.Application.Authoring;
 using AI.SpectrumAdventure.Application.Lore;
 using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Infrastructure.Persistence;
@@ -31,7 +33,9 @@ builder.Services.AddRazorComponents()
 
 var applicationInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
 
-builder.Services.AddOpenTelemetry()
+if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+{
+    builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
     .WithTracing(tracing =>
     {
@@ -66,10 +70,22 @@ builder.Services.AddOpenTelemetry()
             metrics.AddAzureMonitorMetricExporter(options => options.ConnectionString = applicationInsightsConnectionString);
         }
     });
+}
+
+var adventureDbConnectionString = builder.Configuration.GetConnectionString("AdventureDb")
+    ?? throw new InvalidOperationException("ConnectionStrings:AdventureDb must be configured.");
 
 builder.Services.AddDbContext<AdventureDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("AdventureDb")));
+    options.UseNpgsql(adventureDbConnectionString));
 builder.Services.AddScoped<IGameRepository, EfGameRepository>();
+builder.Services.AddScoped<IAdventureAuthoringRepository, EfAdventureAuthoringRepository>();
+builder.Services.AddSingleton<IAdventureValidator, AdventureAuthoringValidator>();
+builder.Services.AddScoped<DraftUseCases>();
+builder.Services.AddScoped<PublishAdventureUseCase>();
+builder.Services.AddScoped<VersionHistoryUseCases>();
+builder.Services.AddScoped<StartPlaytestUseCase>();
+builder.Services.AddScoped<ProposalUseCases>();
+builder.Services.AddScoped<AuthoringPreviewService>();
 builder.Services.AddScoped<IWorldRepository, EfWorldRepository>();
 builder.Services.AddSingleton<WorldGenerator>();
 builder.Services.AddSingleton<IRegionGenerator>(sp => sp.GetRequiredService<WorldGenerator>());
@@ -103,7 +119,11 @@ builder.Services.AddSingleton<IAgentRunner>(sp =>
 {
     var endpoint = builder.Configuration["AzureAI:Endpoint"];
     var deployment = builder.Configuration["AzureAI:ChatDeployment"] ?? "gpt-4o-mini";
-    var client = new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new DefaultAzureCredential());
+    var apiKey = builder.Configuration["AzureAI:ApiKey"];
+
+    var client = apiKey is not null
+        ? new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new System.ClientModel.ApiKeyCredential(apiKey))
+        : new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new DefaultAzureCredential());
     AIAgent agent = client.GetChatClient(deployment).AsIChatClient().AsAIAgent(
         instructions: "You are a component of a text adventure game engine. Follow the per-request instructions exactly.",
         name: "AdventureAgent");
@@ -112,6 +132,7 @@ builder.Services.AddSingleton<IAgentRunner>(sp =>
 builder.Services.AddSingleton<INarratorAgent, NarratorAgent>();
 builder.Services.AddSingleton<INpcAgent, NpcAgent>();
 builder.Services.AddSingleton<IVisualArtDirector, VisualArtDirectorAgent>();
+builder.Services.AddSingleton<IAuthoringProposalAgent, AuthoringProposalAgent>();
 
 // Image pipeline (Phase 13/14): async, non-blocking generation with retro post-processing and Azure Blob storage.
 builder.Services.AddSingleton<ImageGenerationQueue>();
@@ -121,8 +142,11 @@ builder.Services.AddHostedService<ImageGenerationWorker>();
 builder.Services.AddScoped<AI.SpectrumAdventure.Application.Abstractions.IImageGenerator>(sp =>
 {
     var endpoint = builder.Configuration["AzureAI:Endpoint"];
-    var deployment = builder.Configuration["AzureAI:ImageDeployment"] ?? "dall-e-3";
-    var client = new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new DefaultAzureCredential());
+    var deployment = builder.Configuration["AzureAI:ImageDeployment"] ?? "gpt-4o-mini";
+    var apiKey = builder.Configuration["AzureAI:ApiKey"];
+    var client = apiKey is not null
+        ? new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new System.ClientModel.ApiKeyCredential(apiKey))
+        : new AzureOpenAIClient(new Uri(string.IsNullOrWhiteSpace(endpoint) ? "https://placeholder.openai.azure.com" : endpoint), new DefaultAzureCredential());
     return new AzureOpenAiImageGenerator(client.GetImageClient(deployment));
 });
 builder.Services.AddScoped<IRetroImageProcessor, RetroImageProcessor>();
@@ -150,8 +174,7 @@ if (builder.Configuration.GetValue("Database:MigrateOnStartup", true)
     }
     catch (Exception ex)
     {
-        // Keep the container alive so the health endpoint stays available and the failure is observable.
-        logger.LogError(ex, "Database migration failed at startup.");
+        logger.LogCritical(ex, "Database migration failed at startup. The application cannot safely serve requests with an incomplete schema.");
     }
 }
 
@@ -168,6 +191,13 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapGet("/docs/adventure-authoring-guide.md", () =>
+{
+    var manualPath = Path.Combine(AppContext.BaseDirectory, "docs", "adventure-authoring-guide.md");
+    return File.Exists(manualPath)
+        ? Results.File(manualPath, "text/markdown; charset=utf-8")
+        : Results.NotFound();
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

@@ -47,6 +47,16 @@ public class CommandPatternInterpreterTests
     }
 
     [Fact]
+    public void TryInterpret_AuthoredItemName_ResolvesToStableItemId()
+    {
+        var intent = CommandPatternInterpreter.TryInterpret("Take Screwdriver");
+
+        intent.Should().NotBeNull();
+        intent!.Action.Should().Be(IntentAction.Take);
+        intent.Target.Should().Be("screwdriver");
+    }
+
+    [Fact]
     public void TryInterpret_ExamineDoor_ResolvesToExamineTowerEntrance()
     {
         var intent = CommandPatternInterpreter.TryInterpret("examine door");
@@ -65,6 +75,17 @@ public class CommandPatternInterpreterTests
         intent!.Action.Should().Be(IntentAction.Use);
         intent.Target.Should().Be("bridge-key");
         intent.Parameters.Should().ContainKey("on").WhoseValue.Should().Be("forgotten-tower-entrance");
+    }
+
+    [Fact]
+    public void TryInterpret_QuotedNpcDialogue_ResolvesNpcAndCapturesUtterance()
+    {
+        var intent = CommandPatternInterpreter.TryInterpret("Talk to the hermit \"I want to go to the tower\"");
+
+        intent.Should().NotBeNull();
+        intent!.Action.Should().Be(IntentAction.TalkTo);
+        intent.Target.Should().Be("hermit");
+        intent.Parameters.Should().ContainKey("utterance").WhoseValue.Should().Be("I want to go to the tower");
     }
 
     [Fact]

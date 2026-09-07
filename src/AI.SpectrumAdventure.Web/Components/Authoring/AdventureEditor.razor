@@ -1,0 +1,200 @@
+@page "/authoring/adventure"
+@rendermode InteractiveServer
+@inject DraftUseCases Drafts
+@inject PublishAdventureUseCase Publisher
+
+<PageTitle>Adventure Editor</PageTitle>
+
+<main class="authoring-workspace">
+    <header class="authoring-header">
+        <div>
+            <p class="authoring-kicker">AI SPECTRUM ADVENTURE / AUTHORING BAY</p>
+            <h1>Adventure Editor</h1>
+            <p class="authoring-lede">Shape a small world, test its rules, then publish the version you trust.</p>
+        </div>
+        <a class="authoring-guide-link" href="/docs/adventure-authoring-guide.md">Read the authoring guide <span aria-hidden="true">-></span></a>
+    </header>
+
+    <div class="authoring-layout">
+        <div class="authoring-main-column">
+            <section class="authoring-panel authoring-identity-panel" aria-labelledby="identity-heading">
+                <div class="panel-heading">
+                    <div>
+                        <p class="section-index">01 / FOUNDATION</p>
+                        <h2 id="identity-heading">Adventure identity</h2>
+                    </div>
+                    <span class="draft-state">@(draftId is null ? "NEW DRAFT" : $"DRAFT R{revision}")</span>
+                </div>
+
+                <EditForm Model="model" OnValidSubmit="SaveDraftAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                    <div class="authoring-field-grid">
+                        <div class="authoring-field">
+                            <label for="identifier">Identifier</label>
+                            <InputText id="identifier" @bind-Value="model.Identifier" placeholder="moonlit-marsh" />
+                            <span class="field-hint">Unique, stable name for this adventure.</span>
+                        </div>
+                        <div class="authoring-field authoring-field-wide">
+                            <label for="title">Title</label>
+                            <InputText id="title" @bind-Value="model.Title" placeholder="The Moonlit Marsh" />
+                        </div>
+                        <div class="authoring-field">
+                            <label for="starting-location">Starting location</label>
+                            <InputText id="starting-location" @bind-Value="model.StartingLocationId" placeholder="marsh-gate" />
+                        </div>
+                        <div class="authoring-field authoring-field-wide">
+                            <label for="definition">Definition JSON <span class="label-optional">advanced</span></label>
+                            <InputTextArea id="definition" @bind-Value="model.DefinitionJson" rows="8" aria-describedby="definition-hint" />
+                            <span id="definition-hint" class="field-hint">Use the guided panels below for everyday editing.</span>
+                        </div>
+                    </div>
+                    <div class="authoring-actions">
+                        <button class="btn btn-primary" type="submit">@(draftId is null ? "Create draft" : "Save changes")</button>
+                        <button class="btn btn-outline-light" type="button" @onclick="LoadDraftAsync">Reopen draft</button>
+                        <button class="btn btn-accent" type="button" @onclick="PublishAsync" disabled="@(draftId is null)">Validate and publish</button>
+                    </div>
+                </EditForm>
+            </section>
+
+            @if (message is not null)
+            {
+                <p class="authoring-status" role="status"><span aria-hidden="true">+</span> @message</p>
+            }
+
+            @if (validationIssues.Count > 0)
+            {
+                <section class="authoring-panel validation-panel" aria-label="Validation results">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="section-index">CHECKS / ACTION REQUIRED</p>
+                            <h2>Validation results</h2>
+                        </div>
+                        <span class="validation-count">@validationIssues.Count issues</span>
+                    </div>
+                    <ul class="validation-list">
+                        @foreach (var issue in validationIssues)
+                        {
+                            <li><strong>@issue.Element</strong><span>@issue.Reason</span></li>
+                        }
+                    </ul>
+                </section>
+            }
+
+            <section class="authoring-section" aria-labelledby="world-heading">
+                <div class="section-heading-row">
+                    <div>
+                        <p class="section-index">02 / WORLD BUILDING</p>
+                        <h2 id="world-heading">Build the world</h2>
+                    </div>
+                    <p class="section-description">Start with places, then connect them with things worth discovering.</p>
+                </div>
+                <div class="authoring-panel-grid">
+                    <LocationEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                    <ConnectionEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                    <ItemEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                    <StartLocationEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                </div>
+            </section>
+
+            <section class="authoring-section" aria-labelledby="story-heading">
+                <div class="section-heading-row">
+                    <div>
+                        <p class="section-index">03 / STORY SYSTEMS</p>
+                        <h2 id="story-heading">Add story systems</h2>
+                    </div>
+                    <p class="section-description">Give the world voices, memory, and problems to solve.</p>
+                </div>
+                <div class="authoring-panel-grid">
+                    <NpcEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                    <LoreEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                    <PuzzleEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                    <SolutionEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                    <ChainEditorPanel DefinitionJson="@model.DefinitionJson" OnDefinitionChanged="SetDefinition" />
+                </div>
+            </section>
+        </div>
+
+        <aside class="authoring-side-column" aria-label="Adventure tools">
+            <section class="authoring-panel workflow-panel">
+                <p class="section-index">WORKFLOW</p>
+                <ol class="workflow-list">
+                    <li class="workflow-active"><span>01</span><div><strong>Shape</strong><small>Define the world</small></div></li>
+                    <li><span>02</span><div><strong>Validate</strong><small>Check every reference</small></div></li>
+                    <li><span>03</span><div><strong>Playtest</strong><small>Walk the adventure</small></div></li>
+                    <li><span>04</span><div><strong>Publish</strong><small>Release a stable version</small></div></li>
+                </ol>
+            </section>
+            <PlaytestPanel DraftId="@draftId" Revision="@revision" />
+            <ProposalPanel DraftId="@draftId" Revision="@revision" />
+            <VersionHistoryPanel DraftId="@draftId" />
+            <AdventurePreview LocationId="@model.StartingLocationId" LocationName="@model.Title" />
+        </aside>
+    </div>
+</main>
+
+@code {
+    private readonly EditorModel model = new();
+    private AdventureDraftId? draftId;
+    private long revision;
+    private string? message;
+    private IReadOnlyList<AuthoringValidationIssue> validationIssues = [];
+
+    private Task SetDefinition(string definition)
+    {
+        model.DefinitionJson = definition;
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveDraftAsync()
+    {
+        var request = new AdventureDraftRequest(model.Identifier, model.Title, model.StartingLocationId, model.DefinitionJson);
+        var result = draftId is null
+            ? await Drafts.CreateAsync(request)
+            : await Drafts.SaveAsync(draftId.Value, revision, request);
+
+        message = result.Succeeded
+            ? "Draft saved."
+            : string.Join(" ", result.Errors);
+
+        if (result.Draft is not null && result.Succeeded)
+        {
+            draftId = result.Draft.Id;
+            revision = result.Draft.Revision;
+        }
+    }
+
+    private async Task LoadDraftAsync()
+    {
+        var result = await Drafts.LoadAsync(model.Identifier);
+        message = result.Succeeded ? "Draft reopened." : string.Join(" ", result.Errors);
+        if (!result.Succeeded || result.Draft is null)
+        {
+            return;
+        }
+
+        draftId = result.Draft.Id;
+        revision = result.Draft.Revision;
+        model.Title = result.Draft.Title;
+        model.StartingLocationId = result.Draft.StartingLocationId;
+        model.DefinitionJson = result.Draft.DefinitionJson;
+    }
+
+    private async Task PublishAsync()
+    {
+        if (draftId is null) return;
+        var result = await Publisher.ExecuteAsync(draftId.Value, revision);
+        validationIssues = result.Validation.Issues;
+        message = result.Published
+            ? $"Published version {result.VersionSequence}."
+            : string.Join(" ", result.Issues);
+    }
+
+    private sealed class EditorModel
+    {
+        public string Identifier { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string StartingLocationId { get; set; } = string.Empty;
+        public string DefinitionJson { get; set; } = "{}";
+    }
+}

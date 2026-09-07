@@ -1,0 +1,20 @@
+<section aria-labelledby="lore-editor-heading">
+    <h2 id="lore-editor-heading">Lore</h2>
+    <EditForm Model="lore" OnValidSubmit="SaveAsync">
+        <InputText @bind-Value="lore.Id" placeholder="Lore id" />
+        <InputText @bind-Value="lore.Classification" placeholder="Classification" />
+        <InputText @bind-Value="lore.ContentKey" placeholder="Content key" />
+        <InputTextArea @bind-Value="lore.Content" placeholder="Content" />
+        <label><InputCheckbox @bind-Value="lore.IsProtected" /> Protected fact</label>
+        <button type="submit">Add or update lore</button>
+    </EditForm>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string DefinitionJson { get; set; } = "{}";
+    [Parameter] public EventCallback<string> OnDefinitionChanged { get; set; }
+    private LoreModel lore = new();
+    private Task SaveAsync() => OnDefinitionChanged.InvokeAsync(DraftDefinitionEditor.UpsertLore(DefinitionJson,
+        new AuthoringLore(lore.Id, lore.Classification, lore.ContentKey, lore.Content, lore.IsProtected)));
+    private sealed class LoreModel { public string Id { get; set; } = ""; public string Classification { get; set; } = "PlayerDiscoverableKnowledge"; public string ContentKey { get; set; } = ""; public string Content { get; set; } = ""; public bool IsProtected { get; set; } }
+}

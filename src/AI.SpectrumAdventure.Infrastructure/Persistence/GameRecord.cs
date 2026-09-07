@@ -5,6 +5,7 @@ namespace AI.SpectrumAdventure.Infrastructure.Persistence;
 public sealed class GameRecord
 {
     public Guid Id { get; set; }
+    public Guid? AdventureVersionId { get; set; }
 
     public required string Json { get; set; }
 
