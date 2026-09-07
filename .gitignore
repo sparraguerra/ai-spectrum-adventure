@@ -24,3 +24,4 @@ artifacts/
 appsettings.*.local.json
 *.env
 /*-data
+/.env
