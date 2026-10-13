@@ -2,6 +2,8 @@ namespace AI.SpectrumAdventure.Application.Authoring;
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using AI.SpectrumAdventure.Domain.Worlds;
 
 public sealed record AuthoringLocation(
     string Id,
@@ -9,7 +11,9 @@ public sealed record AuthoringLocation(
     string Description,
     IReadOnlyList<AuthoringExit>? Exits = null,
     IReadOnlyList<string>? ObjectIds = null,
-    IReadOnlyList<string>? NpcIds = null);
+    IReadOnlyList<string>? NpcIds = null,
+    LocationType Type = LocationType.Landmark,
+    EnvironmentalProperties? Environment = null);
 
 public sealed record AuthoringExit(string Direction, string To, string? RequiredFlagKey = null, bool MustBeSet = true);
 
@@ -30,7 +34,9 @@ public sealed record AuthoringLore(
     string ContentKey,
     string Content,
     bool IsProtected = false,
-    IReadOnlyList<string>? SubjectReferences = null);
+    IReadOnlyList<string>? SubjectReferences = null,
+    string? Category = null,
+    string? Scope = null);
 
 public sealed record AuthoringPuzzleCondition(string Type, string ReferenceId);
 public sealed record AuthoringPuzzlePrerequisite(string Type, string ReferenceId);
@@ -46,7 +52,25 @@ public sealed record AuthoringPuzzle(
 
 public static class DraftDefinitionEditor
 {
-    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public static string SetMetadata(string definitionJson, string id, string title, string startingLocationId)
+    {
+        var root = Parse(definitionJson);
+        root["id"] = id;
+        root["title"] = title;
+        root["startingLocationId"] = startingLocationId;
+        return root.ToJsonString(Options);
+    }
+
+    public static string? GetStartingLocationId(string definitionJson)
+    {
+        var root = Parse(definitionJson);
+        return root["startingLocationId"]?.GetValue<string>();
+    }
 
     public static string UpsertLocation(string definitionJson, AuthoringLocation location)
     {
@@ -56,7 +80,8 @@ public static class DraftDefinitionEditor
         {
             Exits = location.Exits ?? [],
             ObjectIds = location.ObjectIds ?? [],
-            NpcIds = location.NpcIds ?? []
+            NpcIds = location.NpcIds ?? [],
+            Environment = location.Environment ?? new EnvironmentalProperties(TerrainKind.Forest, "temperate", "daylight")
         }, Options)!.AsObject();
         ReplaceById(locations, value, location.Id);
         return root.ToJsonString(Options);
@@ -106,12 +131,25 @@ public static class DraftDefinitionEditor
             Relationships = npc.Relationships ?? []
         }, Options)!.AsObject();
         ReplaceById(npcs, value, npc.Id);
+        var locations = GetArray(root, "locations");
+        foreach (var existingLocation in locations.OfType<JsonObject>())
+        {
+            if (existingLocation["npcIds"] is not JsonArray existingNpcIds) continue;
+            for (var index = existingNpcIds.Count - 1; index >= 0; index--)
+            {
+                if (existingNpcIds[index] is JsonValue existingId
+                    && existingId.TryGetValue<string>(out var valueId)
+                    && string.Equals(valueId, npc.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    existingNpcIds.RemoveAt(index);
+                }
+            }
+        }
         if (!string.IsNullOrWhiteSpace(npc.LocationId))
         {
-            var location = FindById(GetArray(root, "locations"), npc.LocationId);
+            var location = FindById(locations, npc.LocationId);
             var npcIds = GetArray(location, "npcIds");
-            if (!npcIds.Any(existing => existing is JsonValue jsonValue && jsonValue.TryGetValue<string>(out var existingId) && string.Equals(existingId, npc.Id, StringComparison.OrdinalIgnoreCase)))
-                npcIds.Add(npc.Id);
+            npcIds.Add(npc.Id);
         }
         return root.ToJsonString(Options);
     }

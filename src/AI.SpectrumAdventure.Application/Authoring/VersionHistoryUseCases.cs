@@ -57,12 +57,19 @@ public sealed class VersionHistoryUseCases(IAdventureAuthoringRepository reposit
         if (version is null)
             return Failure(VersionHistoryOperationStatus.NotFound, "The published adventure version was not found.");
 
+        var restoredTitle = string.IsNullOrWhiteSpace(title) ? $"{sourceDraft.Title} (restored v{version.Sequence})" : title;
+        var restoredStartingLocation = DraftDefinitionEditor.GetStartingLocationId(version.DefinitionJson) ?? sourceDraft.StartingLocationId;
+        var definition = DraftDefinitionEditor.SetMetadata(
+            version.DefinitionJson,
+            newAdventureIdentifier,
+            restoredTitle,
+            restoredStartingLocation);
         var restored = new AdventureDraft(
             AdventureDraftId.New(),
             newAdventureIdentifier,
-            string.IsNullOrWhiteSpace(title) ? $"{sourceDraft.Title} (restored v{version.Sequence})" : title,
-            sourceDraft.StartingLocationId,
-            version.DefinitionJson);
+            restoredTitle,
+            restoredStartingLocation,
+            definition);
 
         await repository.SaveDraftAsync(restored, -1, cancellationToken);
         await repository.AddAuditEntryAsync(new AuthoringAuditEntry(

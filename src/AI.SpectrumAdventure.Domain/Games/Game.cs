@@ -88,7 +88,12 @@ public sealed class Game
         if (connection.DestinationLocationId != location.Id || !_locations.ContainsKey(connection.SourceLocationId)) throw new InvalidOperationException("Generated connection does not belong to this game.");
         if (!_locations.ContainsKey(location.Id))
         {
-            _locations.Add(location.Id, new Location(location.Id, location.StructuralNameKey.Replace('-', ' '), location.BaseDescription));
+            _locations.Add(location.Id, new Location(
+                location.Id,
+                location.StructuralNameKey.Replace('-', ' '),
+                location.BaseDescription,
+                type: location.Type,
+                environment: location.Environment));
         }
         _locations[connection.SourceLocationId].AddExit(new Exit(connection.Direction.ToString(), location.Id));
     }
@@ -204,7 +209,9 @@ public sealed class Game
             [.. l.Exits.Select(e => new ExitSnapshot(e.Direction, e.DestinationId.Value, e.RequiredCondition?.RequiredFlagKey, e.RequiredCondition?.MustBeSet))],
             [.. l.ObjectIds.Select(i => i.Value)],
             [.. l.NpcIds.Select(n => n.Value)],
-            l.Discovered))],
+            l.Discovered,
+            l.Type,
+            l.Environment))],
         [.. Items.Select(i => new ItemSnapshot(
             i.Id.Value, i.Name, i.Description, (int)i.State, i.LocationId?.Value, i.RevealCondition?.RequiredFlagKey, i.RevealCondition?.MustBeSet))],
         [.. Npcs.Select(n => new NpcSnapshot(
@@ -217,7 +224,8 @@ public sealed class Game
             n.WorldLocationId?.Value,
             [.. n.Goals],
             [.. n.AllowedLoreReferences],
-            n.StateVersion))],
+            n.StateVersion,
+            [.. n.Relationships]))],
         ToSnapshot(Puzzle),
         [.. ActiveWorldFlags.Select(f => new WorldFlagSnapshot(f.Key, f.SetAt))],
         [.. EventHistory.Select(GameEventSnapshotMapper.ToSnapshot)],
@@ -238,7 +246,9 @@ public sealed class Game
                 new LocationId(es.DestinationId),
                 es.RequiredFlagKey is null ? null : new WorldFlagCondition(es.RequiredFlagKey, es.MustBeSet ?? true))),
             objectIds: ls.ObjectIds.Select(id => new ItemId(id)),
-            npcIds: ls.NpcIds.Select(id => new NpcId(id)))).ToList();
+            npcIds: ls.NpcIds.Select(id => new NpcId(id)),
+            type: ls.Type ?? LocationType.Landmark,
+            environment: ls.Environment ?? new EnvironmentalProperties(TerrainKind.Forest, "temperate", "daylight"))).ToList();
 
         foreach (var (locationSnapshot, location) in snapshot.Locations.Zip(locations))
         {
@@ -261,7 +271,7 @@ public sealed class Game
             var npc = new Npc(
                 new NpcId(ns.Id), ns.Name, ns.PersonalityProfile, ns.KnowledgeBoundary,
                 ns.WorldLocationId is null ? null : new LocationId(ns.WorldLocationId),
-                ns.Goals, ns.AllowedLoreReferences, ns.StateVersion);
+                ns.Goals, ns.AllowedLoreReferences, ns.StateVersion, ns.Relationships);
             foreach (var turn in ns.ConversationMemory)
             {
                 npc.RecordConversationTurn(turn.PlayerUtterance, turn.NpcReply, turn.Timestamp);

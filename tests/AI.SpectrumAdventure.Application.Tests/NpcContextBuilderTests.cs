@@ -23,4 +23,34 @@ public sealed class NpcContextBuilderTests
         context.RecentConversation.Should().BeEmpty();
         context.PlayerKnownFacts.Should().NotContain("forbidden-distant-lore");
     }
+
+        [Fact]
+        public void CreateContext_IncludesAuthoredNpcGoalsAndRelationships()
+        {
+                const string definition = """
+                {
+                    "id": "npc-context",
+                    "title": "NPC Context",
+                    "startingLocationId": "harbor",
+                    "locations": [{ "id": "harbor", "npcIds": ["keeper"] }],
+                    "items": [],
+                    "npcs": [{
+                        "id": "keeper",
+                        "name": "Keeper",
+                        "personality": "Careful and kind.",
+                        "knowledgeBoundary": ["harbor-secret"],
+                        "goals": ["Protect the lighthouse"],
+                        "relationships": ["Trusts the harbor master"]
+                    }],
+                    "puzzle": { "id": "gate", "requiredItemId": "key", "requiredClueKey": "" }
+                }
+                """;
+                var game = AdventureWorldFactory.CreateNewGameFromJson(GameId.New(), DateTimeOffset.UnixEpoch, definition);
+                var npc = game.GetNpc(new NpcId("keeper"));
+
+                var context = NpcConversationOrchestrator.CreateContext(game, npc, "What do you want?");
+
+                context.Goals.Should().ContainSingle().Which.Should().Be("Protect the lighthouse");
+                context.Relationships.Should().ContainSingle().Which.Should().Be("Trusts the harbor master");
+        }
 }

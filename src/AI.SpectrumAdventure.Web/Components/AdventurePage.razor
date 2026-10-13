@@ -7,6 +7,7 @@
 @using AI.SpectrumAdventure.Domain.Common
 @using AI.SpectrumAdventure.Domain.Games
 @using AI.SpectrumAdventure.Application.Worlds
+@using AI.SpectrumAdventure.Application.Lore
 @using AI.SpectrumAdventure.Application.Rules
 
 @inject IGameRepository GameRepository
@@ -20,6 +21,7 @@
 @inject IVisualAssetRepository VisualAssetRepository
 @inject IWorldEnrichmentRepository WorldEnrichmentRepository
 @inject IAdventureCatalog AdventureCatalog
+@inject DiscoverLoreUseCase DiscoverLore
 
 <PageTitle>Adventure</PageTitle>
 
@@ -89,6 +91,21 @@
                         </div>
                     </div>
 
+                    @if (RecentlyDiscoveredLore.Count > 0)
+                    {
+                        <section class="card shadow-sm border-0 mb-4" aria-label="Newly discovered lore">
+                            <div class="card-body">
+                                <h2 class="h5 mb-3">New knowledge</h2>
+                                <ul class="mb-0">
+                                    @foreach (var lore in RecentlyDiscoveredLore)
+                                    {
+                                        <li>@lore.Content</li>
+                                    }
+                                </ul>
+                            </div>
+                        </section>
+                    }
+
                     <div class="card shadow-sm border-0">
                         <div class="card-body">
                             <CommandInput Disabled="@IsProcessing" OnSubmit="HandleSubmitAsync" />
@@ -128,6 +145,7 @@
     private ActionResult? LastResult;
     private AI.SpectrumAdventure.Domain.Worlds.World? CurrentWorld;
     private IReadOnlyCollection<AdventureCatalogItem> AvailableAdventures = [];
+    private IReadOnlyCollection<LoreDiscoveryResult> RecentlyDiscoveredLore = [];
     private string SelectedAdventureId = AdventureWorldFactory.DefaultAdventureId;
     private bool IsProcessing;
     private bool IsCrtEnabled;
@@ -149,6 +167,13 @@
             var game = await new StartGameUseCase(GameRepository, AdventureCatalog, WorldRepository).ExecuteAsync(SelectedAdventureId);
             CurrentGame = game;
             CurrentWorld = game.WorldId is { } worldId ? await WorldRepository.FindAsync(worldId) : null;
+            RecentlyDiscoveredLore = CurrentWorld is null
+                ? []
+                : await DiscoverLoreForAsync(
+                [
+                    new LoreDiscoveryTrigger(LoreDiscoverySource.Region, CurrentWorld.GetLocation(game.Player.CurrentLocationId).RegionId.Value),
+                    new LoreDiscoveryTrigger(LoreDiscoverySource.Location, game.Player.CurrentLocationId.Value)
+                ]);
             var initialResult = AdventureOrchestrator.ProcessAction(game, new ParsedIntent(IntentAction.Look, null, new Dictionary<string, string>(), 1.0, "look"));
             LastResult = await VisualSceneOrchestrator.AttachVisualAsync(
                 game,
@@ -197,6 +222,19 @@
             }
 
             CurrentWorld = CurrentGame.WorldId is { } worldId ? await WorldRepository.FindAsync(worldId) : null;
+            var loreTriggers = new List<LoreDiscoveryTrigger>
+            {
+                new(LoreDiscoverySource.Location, CurrentGame.Player.CurrentLocationId.Value)
+            };
+            if (CurrentWorld is not null)
+                loreTriggers.Add(new LoreDiscoveryTrigger(LoreDiscoverySource.Region, CurrentWorld.GetLocation(CurrentGame.Player.CurrentLocationId).RegionId.Value));
+            if (intent.Action == IntentAction.Take && intent.Target is not null)
+                loreTriggers.Add(new LoreDiscoveryTrigger(LoreDiscoverySource.Item, intent.Target));
+            if (intent.Action == IntentAction.TalkTo && intent.Target is not null)
+                loreTriggers.Add(new LoreDiscoveryTrigger(LoreDiscoverySource.Npc, intent.Target));
+            if (result.PuzzleEvaluation is { Accepted: true } puzzleEvaluation)
+                loreTriggers.Add(new LoreDiscoveryTrigger(LoreDiscoverySource.Puzzle, puzzleEvaluation.PuzzleId));
+            RecentlyDiscoveredLore = CurrentWorld is null ? [] : await DiscoverLoreForAsync(loreTriggers);
             LastResult = await VisualSceneOrchestrator.AttachVisualAsync(
                 CurrentGame,
                 result,
@@ -212,6 +250,13 @@
         {
             IsProcessing = false;
         }
+    }
+
+    private async Task<IReadOnlyCollection<LoreDiscoveryResult>> DiscoverLoreForAsync(IEnumerable<LoreDiscoveryTrigger> triggers)
+    {
+        if (CurrentGame is null || CurrentWorld is null) return [];
+        var results = await DiscoverLore.ExecuteAsync(CurrentGame, CurrentWorld, triggers, DateTimeOffset.UtcNow);
+        return results.Where(result => result.IsNewDiscovery).ToArray();
     }
 
 }

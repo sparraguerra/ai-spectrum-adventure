@@ -3,6 +3,8 @@ namespace AI.SpectrumAdventure.Application.Authoring;
 using System.Text.Json;
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Domain.Authoring;
+using AI.SpectrumAdventure.Domain.Lore;
+using AI.SpectrumAdventure.Domain.Worlds;
 
 public sealed class AdventureAuthoringValidator : IAdventureValidator
 {
@@ -19,6 +21,8 @@ public sealed class AdventureAuthoringValidator : IAdventureValidator
     {
         "Clue", "Item", "NpcInteraction", "Location", "Connection", "WorldEvent", "FollowOnPuzzle"
     };
+    private static readonly HashSet<string> LoreCategories = new(Enum.GetNames<LoreCategory>(), StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> LoreScopes = new(Enum.GetNames<LoreScope>(), StringComparer.OrdinalIgnoreCase);
     public AuthoringValidationResult Validate(AdventureDraft draft)
     {
         using var telemetry = AuthoringTelemetry.Start("validation");
@@ -27,6 +31,7 @@ public sealed class AdventureAuthoringValidator : IAdventureValidator
         {
             using var document = JsonDocument.Parse(draft.DefinitionJson);
             var root = document.RootElement;
+            ValidateDefinitionMetadata(root, draft, issues);
             var locations = Elements(root, "locations");
             var items = Elements(root, "items");
             var npcs = Elements(root, "npcs");
@@ -41,7 +46,7 @@ public sealed class AdventureAuthoringValidator : IAdventureValidator
             var puzzleIds = ValidateIdentifiers(puzzles, "puzzle", issues);
             if (locations.Count == 0)
                 issues.Add(Block("locations", "The adventure must define at least one location."));
-            ValidateLore(lore, issues);
+            ValidateLore(lore, locationIds, itemIds, npcIds, puzzleIds, issues);
             ValidateNpcs(npcs, locations, npcIds, locationIds, lore, issues);
             ValidatePuzzles(puzzles, puzzleIds, locationIds, itemIds, npcIds, lore, issues);
             var start = draft.StartingLocationId;
@@ -55,6 +60,7 @@ public sealed class AdventureAuthoringValidator : IAdventureValidator
             {
                 var locationId = StringValue(location, "id");
                 if (locationId is null) continue;
+                ValidateLocationMetadata(location, locationId, issues);
                 adjacency[locationId] = [];
                 var directions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var exit in Elements(location, "exits"))
@@ -99,7 +105,13 @@ public sealed class AdventureAuthoringValidator : IAdventureValidator
         return new AuthoringValidationResult(draft.Id, draft.Revision, issues);
     }
 
-    private static void ValidateLore(IReadOnlyList<JsonElement> lore, ICollection<AuthoringValidationIssue> issues)
+    private static void ValidateLore(
+        IReadOnlyList<JsonElement> lore,
+        ISet<string> locationIds,
+        ISet<string> itemIds,
+        ISet<string> npcIds,
+        ISet<string> puzzleIds,
+        ICollection<AuthoringValidationIssue> issues)
     {
         var protectedFacts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in lore)
@@ -109,8 +121,36 @@ public sealed class AdventureAuthoringValidator : IAdventureValidator
             if (string.IsNullOrWhiteSpace(classification) || !LoreClassifications.Contains(classification))
                 issues.Add(Block($"lore:{id}", $"Lore '{id}' has an invalid classification '{classification ?? ""}'."));
 
+            var category = StringValue(entry, "category");
+            if (!string.IsNullOrWhiteSpace(category) && !LoreCategories.Contains(category))
+                issues.Add(Block($"lore:{id}", $"Lore '{id}' has an invalid category '{category}'."));
+            var scope = StringValue(entry, "scope");
+            if (!string.IsNullOrWhiteSpace(scope) && !LoreScopes.Contains(scope))
+                issues.Add(Block($"lore:{id}", $"Lore '{id}' has an invalid scope '{scope}'."));
+
+            var subjectReferences = StringValues(entry, "subjectReferences").ToArray();
+            if (string.Equals(classification, "PlayerDiscoverableKnowledge", StringComparison.OrdinalIgnoreCase)
+                && subjectReferences.Length == 0)
+            {
+                issues.Add(Block($"lore:{id}", $"Player-discoverable lore '{id}' must define at least one subject reference."));
+            }
+            foreach (var reference in subjectReferences)
+            {
+                var known = scope switch
+                {
+                    "Location" => locationIds.Contains(reference),
+                    "Character" => npcIds.Contains(reference),
+                    "Object" => itemIds.Contains(reference),
+                    "Puzzle" => puzzleIds.Contains(reference),
+                    _ => true
+                };
+                if (!known)
+                    issues.Add(Block($"lore:{id}:subject:{reference}", $"Lore '{id}' references an unknown {scope} subject '{reference}'."));
+            }
+
             var isProtected = BooleanValue(entry, "isProtected") || BooleanValue(entry, "protected") ||
-                string.Equals(classification, "ImmutableFact", StringComparison.OrdinalIgnoreCase);
+                string.Equals(classification, "ImmutableFact", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(classification, "HistoricalFact", StringComparison.OrdinalIgnoreCase);
             if (!isProtected) continue;
             var key = StringValue(entry, "contentKey") ?? id;
             var content = StringValue(entry, "content") ?? StringValue(entry, "value") ?? string.Empty;
@@ -131,11 +171,17 @@ public sealed class AdventureAuthoringValidator : IAdventureValidator
             var locationId = StringValue(npc, "locationId");
             if (locationId is not null && !locationIds.Contains(locationId))
                 issues.Add(Block($"npc:{npcId}:location", $"NPC '{npcId}' references unknown location '{locationId}'."));
-            var placements = locations.Count(location => StringValues(location, "npcIds").Contains(npcId, StringComparer.OrdinalIgnoreCase));
-            if (locationId is null && placements == 0)
+            var placementIds = locations
+                .Where(location => StringValues(location, "npcIds").Contains(npcId, StringComparer.OrdinalIgnoreCase))
+                .Select(location => StringValue(location, "id"))
+                .Where(id => id is not null)
+                .ToArray();
+            if (locationId is null && placementIds.Length == 0)
                 issues.Add(Block($"npc:{npcId}:location", $"NPC '{npcId}' has no authoritative location."));
-            if (placements > 1)
+            if (placementIds.Length > 1)
                 issues.Add(Block($"npc:{npcId}:location", $"NPC '{npcId}' has multiple authoritative locations."));
+            if (locationId is not null && placementIds.Length == 1 && !string.Equals(locationId, placementIds[0], StringComparison.OrdinalIgnoreCase))
+                issues.Add(Block($"npc:{npcId}:location", $"NPC '{npcId}' authoritative location conflicts with its location placement."));
             foreach (var knowledge in StringValues(npc, "knowledgeBoundary"))
             {
                 if (lore.Count > 0 && !loreKeys.Contains(knowledge))
@@ -195,6 +241,46 @@ public sealed class AdventureAuthoringValidator : IAdventureValidator
             _ => false
         };
         if (!known) issues.Add(Block($"puzzle:{puzzleId}:{context}", $"Puzzle '{puzzleId}' references unknown {type ?? "element"} '{id ?? ""}'."));
+    }
+
+    private static void ValidateLocationMetadata(JsonElement location, string locationId, ICollection<AuthoringValidationIssue> issues)
+    {
+        if (location.TryGetProperty("type", out var typeElement) && typeElement.ValueKind != JsonValueKind.Null)
+        {
+            var type = StringValue(location, "type");
+            if (type is null || !Enum.TryParse<LocationType>(type, true, out _))
+                issues.Add(Block($"location:{locationId}:type", $"Location '{locationId}' has an invalid location type '{type ?? ""}'."));
+        }
+
+        if (!location.TryGetProperty("environment", out var environment)) return;
+        if (environment.ValueKind != JsonValueKind.Object)
+        {
+            issues.Add(Block($"location:{locationId}:environment", $"Location '{locationId}' has invalid environmental properties."));
+            return;
+        }
+
+        var terrain = StringValue(environment, "terrain");
+        if (terrain is null || !Enum.TryParse<TerrainKind>(terrain, true, out _))
+            issues.Add(Block($"location:{locationId}:environment", $"Location '{locationId}' has an invalid terrain '{terrain ?? ""}'."));
+        if (string.IsNullOrWhiteSpace(StringValue(environment, "climate")))
+            issues.Add(Block($"location:{locationId}:environment", $"Location '{locationId}' must define an environmental climate."));
+        if (string.IsNullOrWhiteSpace(StringValue(environment, "lighting")))
+            issues.Add(Block($"location:{locationId}:environment", $"Location '{locationId}' must define environmental lighting."));
+    }
+
+    private static void ValidateDefinitionMetadata(JsonElement root, AdventureDraft draft, ICollection<AuthoringValidationIssue> issues)
+    {
+        var definitionId = StringValue(root, "id");
+        if (definitionId is not null && !string.Equals(definitionId, draft.AdventureIdentifier, StringComparison.OrdinalIgnoreCase))
+            issues.Add(Block("adventure:id", "The definition identifier does not match the draft identifier."));
+
+        var definitionTitle = StringValue(root, "title");
+        if (definitionTitle is not null && !string.Equals(definitionTitle, draft.Title, StringComparison.Ordinal))
+            issues.Add(Block("adventure:title", "The definition title does not match the draft title."));
+
+        var definitionStart = StringValue(root, "startingLocationId");
+        if (definitionStart is not null && !string.Equals(definitionStart, draft.StartingLocationId, StringComparison.OrdinalIgnoreCase))
+            issues.Add(Block("adventure:startingLocation", "The definition starting location does not match the draft starting location."));
     }
 
     private static HashSet<string> ValidateIdentifiers(IReadOnlyList<JsonElement> elements, string kind, ICollection<AuthoringValidationIssue> issues)

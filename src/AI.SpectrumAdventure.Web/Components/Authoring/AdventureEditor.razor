@@ -1,3 +1,4 @@
+@using System.Text.Json
 @page "/authoring/adventure"
 @rendermode InteractiveServer
 @inject DraftUseCases Drafts
@@ -32,8 +33,8 @@
                     <div class="authoring-field-grid">
                         <div class="authoring-field">
                             <label for="identifier">Identifier</label>
-                            <InputText id="identifier" @bind-Value="model.Identifier" placeholder="moonlit-marsh" />
-                            <span class="field-hint">Unique, stable name for this adventure.</span>
+                            <InputText id="identifier" @bind-Value="model.Identifier" placeholder="moonlit-marsh" disabled="@(draftId is not null)" />
+                            <span class="field-hint">Unique, stable name; fixed after draft creation.</span>
                         </div>
                         <div class="authoring-field authoring-field-wide">
                             <label for="title">Title</label>
@@ -143,6 +144,19 @@
     private Task SetDefinition(string definition)
     {
         model.DefinitionJson = definition;
+        try
+        {
+            using var document = JsonDocument.Parse(definition);
+            if (document.RootElement.TryGetProperty("startingLocationId", out var startingLocation)
+                && startingLocation.ValueKind == JsonValueKind.String)
+            {
+                model.StartingLocationId = startingLocation.GetString() ?? model.StartingLocationId;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
         return Task.CompletedTask;
     }
 
@@ -161,6 +175,7 @@
         {
             draftId = result.Draft.Id;
             revision = result.Draft.Revision;
+            model.Identifier = result.Draft.AdventureIdentifier;
         }
     }
 

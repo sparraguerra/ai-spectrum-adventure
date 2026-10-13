@@ -6,6 +6,8 @@
         <InputTextArea @bind-Value="npc.Personality" placeholder="Personality" />
         <InputText @bind-Value="npc.LocationId" placeholder="Authoritative location id" />
         <InputText @bind-Value="npc.Knowledge" placeholder="Knowledge keys, comma separated" />
+        <InputText @bind-Value="npc.Goals" placeholder="Goals, comma separated" />
+        <InputText @bind-Value="npc.Relationships" placeholder="Relationships, comma separated" />
         <button type="submit">Add or update NPC</button>
     </EditForm>
 </section>
@@ -16,8 +18,8 @@
     private NpcModel npc = new();
 
     private Task SaveAsync() => OnDefinitionChanged.InvokeAsync(DraftDefinitionEditor.UpsertNpc(DefinitionJson,
-        new AuthoringNpc(npc.Id, npc.Name, npc.Personality, Values(npc.Knowledge), LocationId: npc.LocationId)));
+        new AuthoringNpc(npc.Id, npc.Name, npc.Personality, Values(npc.Knowledge), Values(npc.Goals), Values(npc.Relationships), npc.LocationId)));
 
     private static IReadOnlyList<string> Values(string value) => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    private sealed class NpcModel { public string Id { get; set; } = ""; public string Name { get; set; } = ""; public string Personality { get; set; } = ""; public string LocationId { get; set; } = ""; public string Knowledge { get; set; } = ""; }
+    private sealed class NpcModel { public string Id { get; set; } = ""; public string Name { get; set; } = ""; public string Personality { get; set; } = ""; public string LocationId { get; set; } = ""; public string Knowledge { get; set; } = ""; public string Goals { get; set; } = ""; public string Relationships { get; set; } = ""; }
 }

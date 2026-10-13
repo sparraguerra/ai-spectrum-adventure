@@ -44,9 +44,9 @@ public sealed class DraftUseCases(
                 request.Id,
                 request.Title,
                 request.StartingLocationId,
-                SerializeDefinition(request.Definition));
+                SerializeDefinition(request));
         }
-        catch (ArgumentException exception)
+            catch (Exception exception) when (exception is ArgumentException or System.Text.Json.JsonException or InvalidOperationException)
         {
             return Conflict(DraftOperationStatus.Invalid, exception.Message);
         }
@@ -91,9 +91,9 @@ public sealed class DraftUseCases(
         AdventureDraft candidate;
         try
         {
-            candidate = new AdventureDraft(draft.Id, draft.AdventureIdentifier, request.Title, request.StartingLocationId, SerializeDefinition(request.Definition), draft.Revision);
+            candidate = new AdventureDraft(draft.Id, draft.AdventureIdentifier, request.Title, request.StartingLocationId, SerializeDefinition(request with { Id = draft.AdventureIdentifier }), draft.Revision);
         }
-        catch (ArgumentException exception)
+        catch (Exception exception) when (exception is ArgumentException or System.Text.Json.JsonException or InvalidOperationException)
         {
             return new DraftUseCaseResult(DraftOperationStatus.Invalid, draft, [exception.Message]);
         }
@@ -117,8 +117,11 @@ public sealed class DraftUseCases(
         return new DraftUseCaseResult(DraftOperationStatus.Succeeded, candidate);
     }
 
-    private static string SerializeDefinition(object definition) =>
-        definition is string json ? json : JsonSerializer.Serialize(definition);
+    private static string SerializeDefinition(AdventureDraftRequest request)
+    {
+        var json = request.Definition is string definitionJson ? definitionJson : JsonSerializer.Serialize(request.Definition);
+        return DraftDefinitionEditor.SetMetadata(json, request.Id, request.Title, request.StartingLocationId);
+    }
 
     private static DraftUseCaseResult Conflict(DraftOperationStatus status, string issue) =>
         new(status, Issues: [issue]);

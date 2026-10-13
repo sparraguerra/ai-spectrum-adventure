@@ -1,9 +1,26 @@
+@using AI.SpectrumAdventure.Domain.Worlds
+
 <section aria-labelledby="location-editor-heading">
     <h2 id="location-editor-heading">Locations</h2>
     <EditForm Model="location" OnValidSubmit="SaveAsync">
         <InputText @bind-Value="location.Id" placeholder="Location id" />
         <InputText @bind-Value="location.Name" placeholder="Name" />
         <InputTextArea @bind-Value="location.Description" placeholder="Description" />
+        <InputSelect @bind-Value="location.Type" aria-label="Location type">
+            @foreach (var type in Enum.GetValues<LocationType>())
+            {
+                <option value="@type">@type</option>
+            }
+        </InputSelect>
+        <InputSelect @bind-Value="location.Terrain" aria-label="Terrain">
+            @foreach (var terrain in Enum.GetValues<TerrainKind>())
+            {
+                <option value="@terrain">@terrain</option>
+            }
+        </InputSelect>
+        <InputText @bind-Value="location.Climate" placeholder="Climate" />
+        <InputText @bind-Value="location.Lighting" placeholder="Lighting" />
+        <InputText @bind-Value="location.Features" placeholder="Environmental features, comma separated" />
         <button type="submit">Add or update location</button>
     </EditForm>
 </section>
@@ -14,12 +31,24 @@
     private AuthoringLocationModel location = new();
 
     private Task SaveAsync() => OnDefinitionChanged.InvokeAsync(DraftDefinitionEditor.UpsertLocation(DefinitionJson,
-        new AuthoringLocation(location.Id, location.Name, location.Description)));
+        new AuthoringLocation(
+            location.Id,
+            location.Name,
+            location.Description,
+            Type: location.Type,
+            Environment: new EnvironmentalProperties(location.Terrain, location.Climate, location.Lighting, Values(location.Features)))));
+
+    private static IReadOnlyList<string> Values(string value) => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private sealed class AuthoringLocationModel
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public LocationType Type { get; set; } = LocationType.Landmark;
+        public TerrainKind Terrain { get; set; } = TerrainKind.Forest;
+        public string Climate { get; set; } = "temperate";
+        public string Lighting { get; set; } = "daylight";
+        public string Features { get; set; } = string.Empty;
     }
 }

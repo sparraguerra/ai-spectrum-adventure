@@ -3,10 +3,32 @@ namespace AI.SpectrumAdventure.Application.Tests;
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Application.Authoring;
 using AI.SpectrumAdventure.Domain.Authoring;
+using System.Text.Json;
 using FluentAssertions;
 
 public sealed class VersionHistoryUseCaseTests
 {
+    [Fact]
+    public async Task RestoreUsesVersionStartingLocationAndSynchronizesDefinitionMetadata()
+    {
+        var repository = new MemoryAuthoringRepository();
+        var source = new AdventureDraft(AdventureDraftId.New(), "history", "History", "current-start", "{}");
+        const string versionDefinition = """
+            { "id": "history", "title": "History", "startingLocationId": "version-start", "version": 1 }
+            """;
+        var version = new AdventureVersion(AdventureVersionId.New(), source.Id, source.AdventureIdentifier, 1, versionDefinition, DateTimeOffset.UnixEpoch);
+        repository.Drafts[source.Id.Value] = source;
+        repository.Versions.Add(version);
+
+        var result = await new VersionHistoryUseCases(repository).RestoreAsNewDraftAsync(source.Id, version.Id, "restored", "Restored history");
+
+        result.Succeeded.Should().BeTrue();
+        result.RestoredDraft!.StartingLocationId.Should().Be("version-start");
+        result.RestoredDraft.DefinitionJson.Should().Contain("\"id\":\"restored\"")
+            .And.Contain("\"title\":\"Restored history\"")
+            .And.Contain("\"startingLocationId\":\"version-start\"");
+    }
+
     [Fact]
     public async Task HistoryIsOrderedAndRestoreCopiesWithoutChangingVersion()
     {
@@ -26,8 +48,13 @@ public sealed class VersionHistoryUseCaseTests
         result.Succeeded.Should().BeTrue();
         result.RestoredDraft.Should().NotBeNull();
         result.RestoredDraft!.Id.Should().NotBe(source.Id);
-        result.RestoredDraft.DefinitionJson.Should().Be(first.DefinitionJson);
         result.RestoredDraft.AdventureIdentifier.Should().Be("history-restored");
+        using (var definition = JsonDocument.Parse(result.RestoredDraft.DefinitionJson))
+        {
+            definition.RootElement.GetProperty("id").GetString().Should().Be("history-restored");
+            definition.RootElement.GetProperty("startingLocationId").GetString().Should().Be("start");
+            definition.RootElement.GetProperty("version").GetInt32().Should().Be(1);
+        }
         repository.Versions.Single(version => version.Id == first.Id).DefinitionJson.Should().Be("{\"version\":1}");
     }
 

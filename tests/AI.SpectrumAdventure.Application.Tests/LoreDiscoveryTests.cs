@@ -11,6 +11,26 @@ using FluentAssertions;
 public sealed class LoreDiscoveryTests
 {
     [Fact]
+    public void Evaluate_UsesSubjectReferencesOnlyForPlayerDiscoverableLore()
+    {
+        var regionId = new RegionId("region");
+        var location = new WorldLocation(new LocationId("start"), regionId, LocationType.Path, "start", "A path.", new EnvironmentalProperties(TerrainKind.Forest, "temperate", "daylight"));
+        var world = new World(
+            WorldId.New(), new WorldSeed("seed"), new GenerationVersion("1"),
+            [new Region(regionId, RegionType.Wilderness, [TerrainKind.Forest], new RegionExpansionPolicy(1), [location.Id])],
+            [location], [],
+            loreEntries:
+            [
+                new LoreEntry(new LoreId("discoverable"), LoreCategory.Object, LoreScope.Object, LoreTruthClassification.CurrentFact, "sign", "The sign points north.", ["sign"], isPlayerDiscoverable: true),
+                new LoreEntry(new LoreId("protected"), LoreCategory.Object, LoreScope.Object, LoreTruthClassification.ImmutableFact, "sign-history", "The sign was made long ago.", ["sign"], isProtected: true)
+            ]);
+
+        var discoveries = new LoreDiscoveryRules([]).Evaluate(world, [new LoreDiscoveryTrigger(LoreDiscoverySource.Item, "sign")]);
+
+        discoveries.Should().ContainSingle().Which.Should().Be(new LoreId("discoverable"));
+    }
+
+    [Fact]
     public async Task ExecuteAsync_IsIdempotentAndKnownLoreExcludesUndiscoveredEntries()
     {
         var world = CreateWorld();

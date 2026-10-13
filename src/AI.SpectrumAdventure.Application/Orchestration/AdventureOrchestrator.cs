@@ -4,6 +4,7 @@ using System.Diagnostics;
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Application.Games;
 using AI.SpectrumAdventure.Application.Lore;
+using AI.SpectrumAdventure.Application.Puzzles;
 using AI.SpectrumAdventure.Application.Rules;
 using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Contracts;
@@ -53,6 +54,13 @@ public static class AdventureOrchestrator
         }
 
         game.ApplyRange(validation.ProposedEvents);
+
+        if (puzzleEvaluation is { Accepted: true }
+            && intent.Parameters.TryGetValue("on", out var puzzleId))
+        {
+            var outcomes = new ApplyPuzzleOutcomeUseCase().Execute(game.GetPuzzle(new PuzzleId(puzzleId)), puzzleEvaluation);
+            puzzleEvaluation = puzzleEvaluation with { ConsequenceIds = [.. outcomes.Select(outcome => outcome.Id)] };
+        }
 
         var sceneChanged = validation.ProposedEvents.Any(e =>
             e is PlayerMovedEvent or PuzzleSolvedEvent or LocationDiscoveredEvent or ObjectStateChangedEvent);

@@ -73,6 +73,7 @@ public sealed class ProposalUseCases(
             return await MarkInvalidAsync(proposal, draft, exception.Message, cancellationToken);
         }
 
+        definition = DraftDefinitionEditor.SetMetadata(definition, draft.AdventureIdentifier, title, start);
         var candidate = new AdventureDraft(draft.Id, draft.AdventureIdentifier, title, start, definition, draft.Revision);
         var validation = validator.Validate(candidate);
         if (validation.HasBlockingIssues) return await MarkInvalidAsync(proposal, draft, validation.Issues.Select(issue => issue.Reason).ToArray(), cancellationToken, validation);

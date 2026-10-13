@@ -6,6 +6,7 @@ using AI.SpectrumAdventure.Domain.Events;
 using AI.SpectrumAdventure.Domain.Games;
 using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Domain.Authoring;
+using AI.SpectrumAdventure.Domain.Lore;
 
 /// <summary>FR-001: begins a new adventure at the Forest Entrance and persists it.</summary>
 public sealed class StartGameUseCase
@@ -43,11 +44,12 @@ public sealed class StartGameUseCase
     private async Task<Game> CreateAndPersistAsync(string adventureId, string definitionJson, AdventureVersionId? adventureVersionId, CancellationToken cancellationToken)
     {
         var game = AdventureWorldFactory.CreateNewGameFromJson(GameId.New(), DateTimeOffset.UtcNow, definitionJson, adventureVersionId);
-        await InitializeAndPersistAsync(game, cancellationToken);
+        var loreEntries = AdventureWorldFactory.CreateLoreEntriesFromJson(definitionJson);
+        await InitializeAndPersistAsync(game, cancellationToken, loreEntries);
         return game;
     }
 
-    private async Task InitializeAndPersistAsync(Game game, CancellationToken cancellationToken)
+    private async Task InitializeAndPersistAsync(Game game, CancellationToken cancellationToken, IReadOnlyCollection<LoreEntry>? loreEntries = null)
     {
 
         game.Apply(new LocationDiscoveredEvent(Guid.NewGuid(), game.CreatedAt, game.Player.CurrentLocationId));
@@ -59,7 +61,7 @@ public sealed class StartGameUseCase
         else
         {
             var worldId = WorldId.New();
-            var world = WorldBootstrapFactory.Create(game, worldId);
+            var world = WorldBootstrapFactory.Create(game, worldId, loreEntries);
             game.BindWorld(worldId);
             var startingLocation = world.GetLocation(game.Player.CurrentLocationId);
             game.PlayerKnowledge.DiscoverRegion(startingLocation.RegionId, game.CreatedAt);

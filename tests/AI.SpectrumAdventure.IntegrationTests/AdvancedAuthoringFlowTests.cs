@@ -20,7 +20,7 @@ public sealed class AdvancedAuthoringFlowTests
               "locations": [{ "id": "start", "name": "Start", "description": "A path.", "npcIds": ["guide"], "objectIds": ["key"] }],
               "items": [{ "id": "key", "name": "Key", "description": "A key." }],
               "npcs": [{ "id": "guide", "name": "Guide", "personality": "Patient", "knowledgeBoundary": ["tower-clue"] }],
-              "lore": [{ "id": "clue", "classification": "PlayerDiscoverableKnowledge", "contentKey": "tower-clue", "content": "The old door opens." }],
+              "lore": [{ "id": "clue", "classification": "PlayerDiscoverableKnowledge", "contentKey": "tower-clue", "content": "The old door opens.", "subjectReferences": ["start"] }],
               "puzzles": [
                 { "id": "first", "solutions": [
                   { "id": "key-solution", "conditions": [{ "type": "ItemPossessed", "referenceId": "key" }] },
