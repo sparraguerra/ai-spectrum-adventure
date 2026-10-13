@@ -38,4 +38,18 @@ public class NpcKnowledgeBoundaryTests
         first.RevealedKnowledgeKeys.Should().BeEmpty();
         second.RevealedKnowledgeKeys.Should().BeEquivalentTo(["tower-clue"]);
     }
+
+    [Fact]
+    public async Task ReplyAsync_IncludesAuthoredGoalsAndRelationshipsInPrompt()
+    {
+        var runner = new FakeAgentRunner().EnqueueResult(new NpcResponse("keeper", "I watch the harbor.", [], null));
+        var agent = new NpcAgent(runner);
+        var context = new NpcContext(
+            "Keeper", "Careful", ["harbor-secret"], [], "What do you protect?",
+            Goals: ["Protect the lighthouse"], Relationships: ["Trusts the harbor master"]);
+
+        await agent.ReplyAsync(context);
+
+        runner.LastPrompt.Should().Contain("Protect the lighthouse").And.Contain("Trusts the harbor master");
+    }
 }

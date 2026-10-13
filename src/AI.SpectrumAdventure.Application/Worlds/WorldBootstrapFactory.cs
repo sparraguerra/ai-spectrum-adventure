@@ -2,18 +2,27 @@ namespace AI.SpectrumAdventure.Application.Worlds;
 
 using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Games;
+using AI.SpectrumAdventure.Domain.Lore;
 using AI.SpectrumAdventure.Domain.Worlds;
 
 public static class WorldBootstrapFactory
 {
-    public static World Create(Game game, WorldId worldId)
+    public static World Create(Game game, WorldId worldId, IEnumerable<LoreEntry>? loreEntries = null)
     {
         var regionId = new RegionId($"{game.AdventureId}-initial");
-        var region = new Region(regionId, RegionType.Wilderness, [TerrainKind.Forest], new RegionExpansionPolicy(100, new HashSet<ConnectionDirection>(Enum.GetValues<ConnectionDirection>())), game.Locations.Select(location => location.Id).ToHashSet());
-        var locations = game.Locations.Select(location => new WorldLocation(location.Id, regionId, LocationType.Landmark, location.Id.Value, location.BaseDescription, new EnvironmentalProperties(TerrainKind.Forest, "temperate", "daylight"))).ToArray();
+        var terrainProfile = game.Locations.Select(location => location.Environment.Terrain).Distinct().ToArray();
+        var region = new Region(regionId, RegionType.Wilderness, terrainProfile, new RegionExpansionPolicy(100, new HashSet<ConnectionDirection>(Enum.GetValues<ConnectionDirection>())), game.Locations.Select(location => location.Id).ToHashSet());
+        var locations = game.Locations.Select(location => new WorldLocation(location.Id, regionId, location.Type, location.Id.Value, location.BaseDescription, location.Environment)).ToArray();
         var connections = game.Locations.SelectMany(location => location.Exits.Select(exit => new WorldConnection(
             new ConnectionId($"{location.Id.Value}:{exit.Direction}"), location.Id, exit.DestinationId, ParseDirection(exit.Direction), ConnectionVisibility.Discovered))).ToArray();
-        var world = new World(worldId, new WorldSeed($"{game.AdventureId}:{game.Id}"), new GenerationVersion("1"), [region], locations, connections);
+        var world = new World(
+            worldId,
+            new WorldSeed($"{game.AdventureId}:{game.Id}"),
+            new GenerationVersion("1"),
+            [region],
+            locations,
+            connections,
+            loreEntries: loreEntries);
         foreach (var npc in game.Npcs)
         {
             if (npc.WorldLocationId is not { } locationId) continue;

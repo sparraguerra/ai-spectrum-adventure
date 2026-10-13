@@ -214,10 +214,23 @@ public sealed class EfWorldRepository(AdventureDbContext dbContext) : IWorldRepo
         return new World(new WorldId(record.Id), new WorldSeed(record.Seed), new GenerationVersion(record.GenerationVersion), regions, locations, connections, metadata, events, loreEntries);
     }
 
-    private sealed record LoreEntrySnapshot(string Id, LoreCategory Category, LoreScope Scope, LoreTruthClassification TruthClassification, string ContentKey, string Content, string[] SubjectReferences)
+    private sealed record LoreEntrySnapshot(
+        string Id,
+        LoreCategory Category,
+        LoreScope Scope,
+        LoreTruthClassification TruthClassification,
+        string ContentKey,
+        string Content,
+        string[] SubjectReferences,
+        bool IsProtected = false,
+        bool IsPlayerDiscoverable = false)
     {
-        public static LoreEntrySnapshot From(LoreEntry entry) => new(entry.Id.Value, entry.Category, entry.Scope, entry.TruthClassification, entry.ContentKey, entry.Content, [.. entry.SubjectReferences]);
-        public LoreEntry ToDomain() => new(new LoreId(Id), Category, Scope, TruthClassification, ContentKey, Content, SubjectReferences);
+        public static LoreEntrySnapshot From(LoreEntry entry) => new(
+            entry.Id.Value, entry.Category, entry.Scope, entry.TruthClassification, entry.ContentKey, entry.Content,
+            [.. entry.SubjectReferences], entry.IsProtected, entry.IsPlayerDiscoverable);
+        public LoreEntry ToDomain() => new(
+            new LoreId(Id), Category, Scope, TruthClassification, ContentKey, Content, SubjectReferences,
+            IsProtected, IsPlayerDiscoverable);
     }
 
     private static WorldEvent ToDomain(WorldEventRecord record) => (WorldEventKind)record.Kind switch

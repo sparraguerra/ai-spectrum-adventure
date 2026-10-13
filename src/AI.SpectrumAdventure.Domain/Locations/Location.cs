@@ -1,6 +1,7 @@
 namespace AI.SpectrumAdventure.Domain.Locations;
 
 using AI.SpectrumAdventure.Domain.Common;
+using AI.SpectrumAdventure.Domain.Worlds;
 
 /// <summary>A place in the world (spec Key Entity "Location"); mutation is restricted to internal domain methods.</summary>
 public sealed class Location
@@ -12,6 +13,8 @@ public sealed class Location
     public LocationId Id { get; }
     public string Name { get; }
     public string BaseDescription { get; }
+    public LocationType Type { get; }
+    public EnvironmentalProperties Environment { get; }
     public IReadOnlyCollection<Exit> Exits => _exits;
     public IReadOnlyCollection<ItemId> ObjectIds => _objectIds;
     public IReadOnlyCollection<NpcId> NpcIds => _npcIds;
@@ -23,11 +26,15 @@ public sealed class Location
         string baseDescription,
         IEnumerable<Exit>? exits = null,
         IEnumerable<ItemId>? objectIds = null,
-        IEnumerable<NpcId>? npcIds = null)
+        IEnumerable<NpcId>? npcIds = null,
+        LocationType type = LocationType.Landmark,
+        EnvironmentalProperties? environment = null)
     {
         Id = id;
         Name = name;
         BaseDescription = baseDescription;
+        Type = type;
+        Environment = environment ?? new EnvironmentalProperties(TerrainKind.Forest, "temperate", "daylight");
         _exits = exits?.ToList() ?? [];
         _objectIds = objectIds?.ToList() ?? [];
         _npcIds = npcIds?.ToList() ?? [];

@@ -66,7 +66,9 @@ public static class NpcConversationOrchestrator
             [.. npc.ConversationMemory.TakeLast(3).Select(turn => $"{turn.PlayerUtterance} -> {turn.NpcReply}")],
             playerUtterance,
             playerKnownFacts,
-            npc.WorldLocationId?.Value);
+            npc.WorldLocationId?.Value,
+            npc.Goals,
+            npc.Relationships);
     }
 
     private static ActionResult BuildResult(Game game, bool success, string? reason, string narrative) =>

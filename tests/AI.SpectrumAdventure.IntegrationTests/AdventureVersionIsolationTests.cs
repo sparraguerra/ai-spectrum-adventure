@@ -1,6 +1,7 @@
 namespace AI.SpectrumAdventure.IntegrationTests;
 
 using AI.SpectrumAdventure.Application.Authoring;
+using System.Text.Json;
 using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Authoring;
 using AI.SpectrumAdventure.Domain.Games;
@@ -38,7 +39,13 @@ public sealed class AdventureVersionIsolationTests
         var restored = await history.RestoreAsNewDraftAsync(source.Id, firstVersion.Id, "isolation-restored");
 
         restored.Succeeded.Should().BeTrue();
-        restored.RestoredDraft!.DefinitionJson.Should().Be(firstVersion.DefinitionJson);
+        using var restoredDefinition = JsonDocument.Parse(restored.RestoredDraft!.DefinitionJson);
+        restoredDefinition.RootElement.GetProperty("id").GetString().Should().Be("isolation-restored");
+        restoredDefinition.RootElement.GetProperty("title").GetString().Should().Be("Isolation (restored v1)");
+        restoredDefinition.RootElement.GetProperty("startingLocationId").GetString().Should().Be("start");
+        restored.RestoredDraft.DefinitionJson.Should().Contain("\"to\":\"room\"").And.NotContain("new-room");
+        var versionsAfterRestore = await repository.GetVersionsAsync(source.Id);
+        versionsAfterRestore.Single(version => version.Id == firstVersion.Id).DefinitionJson.Should().Be(firstVersion.DefinitionJson);
         (await repository.FindDraftByIdentifierAsync("isolation-restored")).Should().NotBeNull();
     }
 

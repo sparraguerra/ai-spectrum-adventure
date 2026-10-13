@@ -19,6 +19,8 @@ public sealed class PuzzleChainTests
         var intent = new ParsedIntent(IntentAction.Use, AdventureWorldFactory.BridgeKey.Value, new Dictionary<string, string> { ["on"] = "tower-heart" }, 1, "use key on heart");
 
         var beforePrerequisite = PuzzleRules.Evaluate(intent, game);
+        new ApplyPuzzleOutcomeUseCase().Execute(game.GetPuzzle(new PuzzleId("tower-heart")), beforePrerequisite)
+            .Should().BeEmpty();
         game.Apply(new PuzzleSolvedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, AdventureWorldFactory.ForgottenTowerEntrance));
         var accepted = PuzzleRules.Evaluate(intent, game);
         var outcomes = new ApplyPuzzleOutcomeUseCase().Execute(game.GetPuzzle(new PuzzleId("tower-heart")), accepted);

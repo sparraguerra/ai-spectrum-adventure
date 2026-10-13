@@ -3,8 +3,11 @@
     <EditForm Model="lore" OnValidSubmit="SaveAsync">
         <InputText @bind-Value="lore.Id" placeholder="Lore id" />
         <InputText @bind-Value="lore.Classification" placeholder="Classification" />
+        <InputText @bind-Value="lore.Category" placeholder="Category (History, Geography, Person...)" />
+        <InputText @bind-Value="lore.Scope" placeholder="Scope (World, Regional, Location...)" />
         <InputText @bind-Value="lore.ContentKey" placeholder="Content key" />
         <InputTextArea @bind-Value="lore.Content" placeholder="Content" />
+        <InputText @bind-Value="lore.SubjectReferences" placeholder="Discovery references, comma separated" />
         <label><InputCheckbox @bind-Value="lore.IsProtected" /> Protected fact</label>
         <button type="submit">Add or update lore</button>
     </EditForm>
@@ -15,6 +18,9 @@
     [Parameter] public EventCallback<string> OnDefinitionChanged { get; set; }
     private LoreModel lore = new();
     private Task SaveAsync() => OnDefinitionChanged.InvokeAsync(DraftDefinitionEditor.UpsertLore(DefinitionJson,
-        new AuthoringLore(lore.Id, lore.Classification, lore.ContentKey, lore.Content, lore.IsProtected)));
-    private sealed class LoreModel { public string Id { get; set; } = ""; public string Classification { get; set; } = "PlayerDiscoverableKnowledge"; public string ContentKey { get; set; } = ""; public string Content { get; set; } = ""; public bool IsProtected { get; set; } }
+        new AuthoringLore(lore.Id, lore.Classification, lore.ContentKey, lore.Content, lore.IsProtected,
+            Values(lore.SubjectReferences), Optional(lore.Category), Optional(lore.Scope))));
+    private static IReadOnlyList<string> Values(string value) => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private static string? Optional(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private sealed class LoreModel { public string Id { get; set; } = ""; public string Classification { get; set; } = "PlayerDiscoverableKnowledge"; public string Category { get; set; } = ""; public string Scope { get; set; } = ""; public string ContentKey { get; set; } = ""; public string Content { get; set; } = ""; public string SubjectReferences { get; set; } = ""; public bool IsProtected { get; set; } }
 }

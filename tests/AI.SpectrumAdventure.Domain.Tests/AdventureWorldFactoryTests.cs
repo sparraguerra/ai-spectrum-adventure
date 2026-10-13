@@ -3,6 +3,8 @@ namespace AI.SpectrumAdventure.Domain.Tests;
 using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Games;
 using AI.SpectrumAdventure.Domain.Puzzles;
+using AI.SpectrumAdventure.Domain.Worlds;
+using AI.SpectrumAdventure.Application.Worlds;
 using FluentAssertions;
 using Xunit;
 
@@ -178,5 +180,120 @@ public class AdventureWorldFactoryTests
                 game.GetLocation(new LocationId("mine-entrance")).ObjectIds.Should().Contain(new ItemId("lamp"));
                 game.GetItem(new ItemId("lamp")).Name.Should().Be("Brass Lamp");
                 game.Puzzle.RequiredClueKey.Should().Be("mine-clue");
+        }
+
+        [Fact]
+        public void CreateNewGameFromJson_PreservesAuthoredLocationTypeAndEnvironmentAcrossSnapshot()
+        {
+                const string json = """
+                {
+                    "id": "crystal-caves",
+                    "title": "Crystal Caves",
+                    "startingLocationId": "entrance",
+                    "locations": [{
+                        "id": "entrance",
+                        "name": "Entrance",
+                        "description": "A cave entrance.",
+                        "type": "Cavern",
+                        "environment": { "terrain": "Stone", "climate": "cold", "lighting": "dark", "features": ["crystals"] }
+                    }],
+                    "items": [{ "id": "key", "name": "Key", "description": "A key.", "states": ["Collectible"] }],
+                    "npcs": [],
+                    "puzzle": { "id": "gate", "requiredItemId": "key", "requiredClueKey": "" }
+                }
+                """;
+
+                var game = AdventureWorldFactory.CreateNewGameFromJson(GameId.New(), DateTimeOffset.UnixEpoch, json);
+                var reloaded = Game.FromSnapshot(game.ToSnapshot());
+                var location = reloaded.GetLocation(new LocationId("entrance"));
+
+                location.Type.Should().Be(LocationType.Cavern);
+                location.Environment.Terrain.Should().Be(TerrainKind.Stone);
+                location.Environment.Climate.Should().Be("cold");
+                location.Environment.Lighting.Should().Be("dark");
+                location.Environment.Features.Should().Equal("crystals");
+
+                var worldLocation = WorldBootstrapFactory.Create(reloaded, WorldId.New()).GetLocation(location.Id);
+                worldLocation.Type.Should().Be(LocationType.Cavern);
+                worldLocation.Environment.Terrain.Should().Be(TerrainKind.Stone);
+                worldLocation.Environment.Features.Should().Equal("crystals");
+        }
+
+        [Fact]
+        public void CreateNewGameFromJson_PreservesNpcGoalsRelationshipsAndLocationAcrossSnapshot()
+        {
+                const string json = """
+                {
+                    "id": "npc-adventure",
+                    "title": "NPC Adventure",
+                    "startingLocationId": "harbor",
+                      "locations": [{ "id": "harbor", "name": "Harbor", "description": "A harbor." }],
+                    "items": [],
+                    "npcs": [{
+                        "id": "keeper",
+                        "name": "Keeper",
+                        "personality": "Careful and kind.",
+                        "knowledgeBoundary": ["harbor-secret"],
+                        "goals": ["Protect the lighthouse"],
+                        "relationships": ["Trusts the harbor master"],
+                        "locationId": "harbor"
+                    }],
+                    "puzzle": { "id": "harbor-gate", "requiredItemId": "key", "requiredClueKey": "" }
+                }
+                """;
+
+                var game = AdventureWorldFactory.CreateNewGameFromJson(GameId.New(), DateTimeOffset.UnixEpoch, json);
+                var npc = Game.FromSnapshot(game.ToSnapshot()).GetNpc(new NpcId("keeper"));
+
+                game.GetLocation(new LocationId("harbor")).NpcIds.Should().Contain(new NpcId("keeper"));
+                npc.WorldLocationId.Should().Be(new LocationId("harbor"));
+                npc.Goals.Should().ContainSingle().Which.Should().Be("Protect the lighthouse");
+                npc.Relationships.Should().ContainSingle().Which.Should().Be("Trusts the harbor master");
+                npc.KnowledgeBoundary.Should().Contain("harbor-secret");
+        }
+
+            [Fact]
+            public void AddGeneratedLocation_PreservesTypeAndEnvironmentFromWorldLocation()
+            {
+                var game = CreateGame();
+                var regionId = new RegionId("generated-region");
+                var environment = new EnvironmentalProperties(TerrainKind.Marsh, "humid", "foggy", ["reeds"]);
+                var generated = new WorldLocation(new LocationId("reed-cavern"), regionId, LocationType.Cavern, "reed-cavern", "A cavern in the marsh.", environment);
+                var connection = new WorldConnection(
+                    new ConnectionId("dark-forest:North"),
+                    AdventureWorldFactory.DarkForest,
+                    generated.Id,
+                    ConnectionDirection.North,
+                    ConnectionVisibility.Discovered);
+
+                game.AddGeneratedLocation(generated, connection);
+                var reloaded = Game.FromSnapshot(game.ToSnapshot()).GetLocation(generated.Id);
+
+                reloaded.Type.Should().Be(LocationType.Cavern);
+                reloaded.Environment.Terrain.Should().Be(TerrainKind.Marsh);
+                reloaded.Environment.Features.Should().Equal("reeds");
+            }
+
+        [Fact]
+        public void CreateNewGameFromJson_RejectsConflictingNpcLocationDeclarations()
+        {
+                const string json = """
+                {
+                    "id": "npc-placement",
+                    "title": "NPC Placement",
+                    "startingLocationId": "harbor",
+                    "locations": [
+                        { "id": "harbor", "npcIds": ["keeper"] },
+                        { "id": "tower" }
+                    ],
+                    "items": [],
+                    "npcs": [{ "id": "keeper", "name": "Keeper", "personality": "Careful", "knowledgeBoundary": [], "locationId": "tower" }],
+                    "puzzle": { "id": "gate", "requiredItemId": "key", "requiredClueKey": "" }
+                }
+                """;
+
+                FluentActions.Invoking(() => AdventureWorldFactory.CreateNewGameFromJson(GameId.New(), DateTimeOffset.UnixEpoch, json))
+                        .Should().Throw<InvalidOperationException>()
+                        .WithMessage("*authoritative location*");
         }
 }

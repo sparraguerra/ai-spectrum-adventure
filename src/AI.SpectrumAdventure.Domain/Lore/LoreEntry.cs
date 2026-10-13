@@ -12,10 +12,21 @@ public sealed class LoreEntry
     public LoreTruthClassification TruthClassification { get; }
     public string ContentKey { get; }
     public string Content { get; }
+    public bool IsProtected { get; }
+    public bool IsPlayerDiscoverable { get; }
     public IReadOnlySet<string> SubjectReferences => _subjectReferences;
     public bool IsUncertain => TruthClassification == LoreTruthClassification.Rumour;
 
-    public LoreEntry(LoreId id, LoreCategory category, LoreScope scope, LoreTruthClassification truthClassification, string contentKey, string content, IEnumerable<string>? subjectReferences = null)
+    public LoreEntry(
+        LoreId id,
+        LoreCategory category,
+        LoreScope scope,
+        LoreTruthClassification truthClassification,
+        string contentKey,
+        string content,
+        IEnumerable<string>? subjectReferences = null,
+        bool isProtected = false,
+        bool isPlayerDiscoverable = false)
     {
         if (string.IsNullOrWhiteSpace(id.Value)) throw new ArgumentException("A lore identifier is required.", nameof(id));
         if (string.IsNullOrWhiteSpace(contentKey)) throw new ArgumentException("A lore content key is required.", nameof(contentKey));
@@ -29,6 +40,8 @@ public sealed class LoreEntry
         TruthClassification = truthClassification;
         ContentKey = contentKey;
         Content = content;
+        IsProtected = isProtected || truthClassification is LoreTruthClassification.ImmutableFact or LoreTruthClassification.HistoricalFact;
+        IsPlayerDiscoverable = isPlayerDiscoverable;
         _subjectReferences = [.. (subjectReferences ?? []).Where(reference => !string.IsNullOrWhiteSpace(reference))];
     }
 
@@ -36,7 +49,7 @@ public sealed class LoreEntry
         other is not null &&
         !IsUncertain &&
         !other.IsUncertain &&
-        (TruthClassification is LoreTruthClassification.ImmutableFact or LoreTruthClassification.HistoricalFact || other.TruthClassification is LoreTruthClassification.ImmutableFact or LoreTruthClassification.HistoricalFact) &&
+        (IsProtected || other.IsProtected) &&
         ContentKey.Equals(other.ContentKey, StringComparison.OrdinalIgnoreCase) &&
         !Content.Equals(other.Content, StringComparison.Ordinal);
 }

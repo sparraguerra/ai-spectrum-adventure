@@ -6,6 +6,7 @@ This guide is for authors using the Adventure Editor at `/authoring/adventure`. 
 
 The draft definition is the authoritative game content. Locations, exits, item placement, NPC placement, lore classifications, puzzle rules, prerequisites, outcomes, and chain links are facts that the deterministic validator and game engine use.
 
+An NPC should have a stable ID, name, personality, goals, relationships, and a knowledge boundary. Give it one authoritative location through the location's `npcIds` or the NPC's `locationId`; when both are supplied, they must identify the same place. Goals and relationships are included in the NPC's runtime context.
 AI proposals, generated descriptions, enrichment, and visual previews are optional authoring aids. They are never authoritative, never publish automatically, and cannot replace validation. Review and explicitly accept a proposal before it can change a draft. A failed AI or image request leaves manual editing, validation, publication, and playtesting available.
 
 ## 1. Create a draft
@@ -18,15 +19,15 @@ A draft may be incomplete while it is being authored. It must pass blocking vali
 
 ## 2. Build the world structure
 
-Add locations with stable IDs, names, descriptions, and exits. Each exit has a direction (`North`, `East`, `South`, `West`, `Up`, or `Down`) and a destination location ID. Add items and place them with `objectIds`. Set the editor's starting location to an existing location. The validator checks duplicate IDs, destinations, directions, references, reachability, and meaningful initial interaction.
+Add locations with stable IDs, names, descriptions, a type, and an environmental profile. Types are `Landmark`, `Path`, `Settlement`, `Interior`, `Ruin`, or `Cavern`; the profile stores terrain, climate, lighting, and optional features. Each exit has a direction (`North`, `East`, `South`, `West`, `Up`, or `Down`) and a destination location ID. Add items and place them with `objectIds`. Set the editor's starting location to an existing location. The validator checks duplicate IDs, destinations, directions, references, reachability, and meaningful initial interaction.
 
 ## 3. Add NPCs and lore
 
-An NPC should have a stable ID, name, personality, goals, relationships, and a knowledge boundary. Give it one authoritative location through the location's `npcIds` (or the NPC's `locationId` when supported). Lore entries use a classification such as `ImmutableFact`, `HistoricalFact`, `RegionalFact`, `Rumour`, or `PlayerDiscoverableKnowledge`. Protected or immutable facts must not contradict one another.
+An NPC should have a stable ID, name, personality, goals, relationships, and a knowledge boundary. Give it one authoritative location through the location's `npcIds` or the NPC's `locationId`; when both are supplied, they must identify the same place. Goals and relationships are included in the NPC's runtime context. Lore entries carry a classification, category, scope, content key/body, protection flag, and subject references. `PlayerDiscoverableKnowledge` and `RegionalFact` entries are discovered when their subject reference matches a gameplay trigger allowed by their scope (for example, scope `Character` plus subject `mira` is discovered when Mira is met). A regional fact without explicit subjects refers to the adventure's initial region. Protected or immutable facts must not contradict one another.
 
 ## 4. Add puzzles and chains
 
-Define reusable puzzles with one or more solutions. Conditions can reference an item, known clue, world flag, or solved puzzle. Outcomes can reveal a clue, change an item or location, trigger an NPC interaction or world event, or follow on to another puzzle. Add the follow-on puzzle to `chainLinks`. The validator reports every missing item, lore key, NPC, location, puzzle, or chain target before publication.
+Define reusable puzzles with one or more solutions. Conditions can reference an item, known clue, world flag, or solved puzzle. Prerequisites must be met before a solution is accepted. The normal gameplay path resolves an accepted puzzle against its declared outcomes and returns only those outcome IDs as consequences; rejected attempts return none. Add follow-on puzzle IDs to `chainLinks` and use a `PuzzleSolved` prerequisite to gate the next challenge. The validator reports missing item, lore key, NPC, location, puzzle, or chain references before publication.
 
 ## Complete example
 
@@ -42,6 +43,8 @@ The following example is a small, valid adventure. In the editor, set **Identifi
       "id": "gate",
       "name": "Moss Gate",
       "description": "A moonlit gate opens onto a narrow trail.",
+      "type": "Path",
+      "environment": { "terrain": "Forest", "climate": "temperate", "lighting": "moonlit", "features": ["moss"] },
       "exits": [{ "direction": "East", "to": "watchpost" }],
       "objectIds": ["brass-key"],
       "npcIds": ["mira"]
@@ -50,27 +53,37 @@ The following example is a small, valid adventure. In the editor, set **Identifi
       "id": "watchpost",
       "name": "Old Watchpost",
       "description": "A quiet tower watches the forest.",
+      "type": "Landmark",
+      "environment": { "terrain": "Hills", "climate": "temperate", "lighting": "night" },
       "exits": [{ "direction": "East", "to": "lantern-room" }, { "direction": "West", "to": "gate" }]
     },
     {
       "id": "lantern-room",
       "name": "Lantern Room",
       "description": "A sealed lantern waits beside a stone door.",
+      "type": "Interior",
+      "environment": { "terrain": "Stone", "climate": "cool", "lighting": "dark", "features": ["salt air"] },
       "exits": [{ "direction": "West", "to": "watchpost" }]
     }
   ],
-  "items": [{ "id": "brass-key", "name": "Brass Key", "description": "A small key marked with a sun." }],
+  "items": [{ "id": "brass-key", "name": "Brass Key", "description": "A small key marked with a sun.", "states": ["Visible", "Collectible"] }],
   "npcs": [{
     "id": "mira",
     "name": "Mira the Keeper",
     "personality": "Patient and observant",
+    "locationId": "gate",
     "goals": ["Keep the lantern safe"],
+    "relationships": ["Trusts the keeper's oath"],
     "knowledgeBoundary": ["lantern-oath"]
   }],
   "lore": [{
     "id": "oath",
-    "classification": "ImmutableFact",
+    "classification": "PlayerDiscoverableKnowledge",
+    "category": "History",
+    "scope": "Character",
     "contentKey": "lantern-oath",
+    "subjectReferences": ["mira"],
+    "isProtected": true,
     "content": "The keeper's oath protects the first lantern."
   }],
   "puzzles": [

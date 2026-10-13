@@ -5,9 +5,11 @@ using System.Text.Json.Serialization;
 using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Items;
 using AI.SpectrumAdventure.Domain.Locations;
+using AI.SpectrumAdventure.Domain.Lore;
 using AI.SpectrumAdventure.Domain.Npcs;
 using AI.SpectrumAdventure.Domain.Players;
 using AI.SpectrumAdventure.Domain.Puzzles;
+using AI.SpectrumAdventure.Domain.Worlds;
 
 /// <summary>
 /// Loads adventure definitions into the deterministic game model.
@@ -53,6 +55,48 @@ public static class AdventureWorldFactory
         return CreateFromDefinition(id, createdAt, definition, adventureVersionId);
     }
 
+    public static IReadOnlyList<LoreEntry> CreateLoreEntriesFromJson(string json)
+    {
+        var definition = JsonSerializer.Deserialize<AdventureDefinition>(json, SerializerOptions)
+            ?? throw new InvalidOperationException("Adventure JSON is empty or invalid.");
+
+        return definition.Lore.Select(lore =>
+        {
+            var classification = lore.Classification;
+            var category = Enum.TryParse<LoreCategory>(lore.Category, true, out var parsedCategory)
+                ? parsedCategory
+                : classification switch
+                {
+                    "RegionalFact" => LoreCategory.Geography,
+                    "Rumour" => LoreCategory.Rumour,
+                    "PlayerDiscoverableKnowledge" => LoreCategory.Event,
+                    _ => LoreCategory.History
+                };
+            var scope = Enum.TryParse<LoreScope>(lore.Scope, true, out var parsedScope)
+                ? parsedScope
+                : string.Equals(classification, "RegionalFact", StringComparison.OrdinalIgnoreCase)
+                    ? LoreScope.Regional
+                    : LoreScope.World;
+            var truth = classification switch
+            {
+                "ImmutableFact" => LoreTruthClassification.ImmutableFact,
+                "HistoricalFact" => LoreTruthClassification.HistoricalFact,
+                "Rumour" => LoreTruthClassification.Rumour,
+                _ => LoreTruthClassification.CurrentFact
+            };
+            var subjectReferences = lore.SubjectReferences;
+            if (scope == LoreScope.Regional && subjectReferences.Count == 0)
+                subjectReferences = [$"{definition.Id}-initial"];
+
+            return new LoreEntry(
+                new LoreId(lore.Id), category, scope, truth, lore.ContentKey, lore.Content,
+                subjectReferences,
+                lore.IsProtected,
+                string.Equals(classification, "PlayerDiscoverableKnowledge", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(classification, "RegionalFact", StringComparison.OrdinalIgnoreCase));
+        }).ToArray();
+    }
+
     private static AdventureDefinition LoadDefinition(string adventureId)
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Adventures", $"{adventureId}.json");
@@ -82,6 +126,17 @@ public static class AdventureWorldFactory
             itemLocations.TryGetValue(item.Id, out var locationId) ? new LocationId(locationId) : null,
             item.RevealCondition is null ? null : new WorldFlagCondition(item.RevealCondition.RequiredFlagKey, item.RevealCondition.MustBeSet))).ToList();
 
+        var npcLocations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var location in definition.Locations)
+        {
+            foreach (var npcId in location.NpcIds)
+            {
+                npcLocations.TryAdd(npcId, location.Id);
+            }
+        }
+        foreach (var npc in definition.Npcs.Where(npc => !string.IsNullOrWhiteSpace(npc.LocationId)))
+            npcLocations.TryAdd(npc.Id, npc.LocationId!);
+
         var locations = definition.Locations.Select(location => new Location(
             new LocationId(location.Id),
             location.Name,
@@ -91,18 +146,19 @@ public static class AdventureWorldFactory
                 new LocationId(exit.To),
                 exit.RequiredFlagKey is null ? null : new WorldFlagCondition(exit.RequiredFlagKey, exit.MustBeSet))),
             objectIds: location.ObjectIds.Select(objectId => new ItemId(objectId)),
-            npcIds: location.NpcIds.Select(npcId => new NpcId(npcId)))).ToList();
+            npcIds: npcLocations.Where(pair => string.Equals(pair.Value, location.Id, StringComparison.OrdinalIgnoreCase))
+                .Select(pair => new NpcId(pair.Key)),
+            type: location.Type,
+            environment: location.Environment)).ToList();
 
-        var npcLocations = definition.Locations
-            .SelectMany(location => location.NpcIds.Select(npcId => new { NpcId = npcId, LocationId = location.Id }))
-            .ToDictionary(pair => pair.NpcId, pair => pair.LocationId, StringComparer.OrdinalIgnoreCase);
         var npcs = definition.Npcs.Select(npc => new Npc(
             new NpcId(npc.Id),
             npc.Name,
             npc.Personality,
             npc.KnowledgeBoundary,
             npcLocations.TryGetValue(npc.Id, out var locationId) ? new LocationId(locationId) : null,
-            goals: [],
+            goals: npc.Goals,
+            relationships: npc.Relationships,
             allowedLoreReferences: npc.KnowledgeBoundary)).ToList();
 
         var puzzles = GetPuzzleDefinitions(definition).Select(CreatePuzzle).ToList();
@@ -165,6 +221,22 @@ public static class AdventureWorldFactory
             foreach (var npcId in location.NpcIds.Where(npcId => !npcIds.Contains(npcId)))
             {
                 throw new InvalidOperationException($"Location '{location.Id}' references unknown NPC '{npcId}'.");
+            }
+        }
+
+        foreach (var npc in definition.Npcs)
+        {
+            if (npc.LocationId is not null && !locationIds.Contains(npc.LocationId))
+                throw new InvalidOperationException($"NPC '{npc.Id}' references unknown location '{npc.LocationId}'.");
+
+            var placements = definition.Locations
+                .Where(location => location.NpcIds.Contains(npc.Id, StringComparer.OrdinalIgnoreCase))
+                .Select(location => location.Id)
+                .ToArray();
+            if (placements.Length > 1 || npc.LocationId is not null && placements.Length == 1 &&
+                !string.Equals(npc.LocationId, placements[0], StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"NPC '{npc.Id}' has conflicting authoritative locations.");
             }
         }
 
@@ -244,8 +316,21 @@ public static class AdventureWorldFactory
         public List<LocationDefinition> Locations { get; init; } = [];
         public List<ItemDefinition> Items { get; init; } = [];
         public List<NpcDefinition> Npcs { get; init; } = [];
+        public List<LoreDefinition> Lore { get; init; } = [];
         public PuzzleDefinition Puzzle { get; init; } = new();
         public List<PuzzleDefinition> Puzzles { get; init; } = [];
+    }
+
+    private sealed class LoreDefinition
+    {
+        public string Id { get; init; } = "";
+        public string Classification { get; init; } = "CurrentFact";
+        public string? Category { get; init; }
+        public string? Scope { get; init; }
+        public string ContentKey { get; init; } = "";
+        public string Content { get; init; } = "";
+        public bool IsProtected { get; init; }
+        public List<string> SubjectReferences { get; init; } = [];
     }
 
     private sealed class LocationDefinition
@@ -253,6 +338,8 @@ public static class AdventureWorldFactory
         public string Id { get; init; } = "";
         public string Name { get; init; } = "";
         public string Description { get; init; } = "";
+        public LocationType Type { get; init; } = LocationType.Landmark;
+        public EnvironmentalProperties Environment { get; init; } = new(TerrainKind.Forest, "temperate", "daylight");
         public List<ExitDefinition> Exits { get; init; } = [];
         public List<string> ObjectIds { get; init; } = [];
         public List<string> NpcIds { get; init; } = [];
@@ -287,6 +374,9 @@ public static class AdventureWorldFactory
         public string Name { get; init; } = "";
         public string Personality { get; init; } = "";
         public List<string> KnowledgeBoundary { get; init; } = [];
+        public List<string> Goals { get; init; } = [];
+        public List<string> Relationships { get; init; } = [];
+        public string? LocationId { get; init; }
     }
 
     private sealed class PuzzleDefinition

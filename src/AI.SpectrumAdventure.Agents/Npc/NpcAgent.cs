@@ -31,6 +31,8 @@ public sealed class NpcAgent(IAgentRunner agentRunner) : INpcAgent
             string.Join(", ", context.KnowledgeBoundary));
 
         return systemPrompt + Environment.NewLine + "Recent conversation: " + JsonSerializer.Serialize(context.RecentConversation) +
+            Environment.NewLine + "Your goals: " + JsonSerializer.Serialize(context.Goals ?? []) +
+            Environment.NewLine + "Your relationships: " + JsonSerializer.Serialize(context.Relationships ?? []) +
             Environment.NewLine + "Facts this player has already learned: " + JsonSerializer.Serialize(context.PlayerKnownFacts ?? []) +
             Environment.NewLine + "Your current location: " + (context.CurrentLocationId ?? "unknown") +
             Environment.NewLine + "Player says: " + context.PlayerUtterance;

@@ -3,6 +3,7 @@ namespace AI.SpectrumAdventure.Application.Tests;
 using AI.SpectrumAdventure.Application.Authoring;
 using AI.SpectrumAdventure.Domain.Authoring;
 using FluentAssertions;
+using System.Text.Json;
 
 public sealed class AuthoringLoreAndPuzzleValidationTests
 {
@@ -37,7 +38,7 @@ public sealed class AuthoringLoreAndPuzzleValidationTests
             { "locations": [{ "id": "start", "objectIds": ["key"], "npcIds": ["guide"] }],
               "items": [{ "id": "key" }],
               "npcs": [{ "id": "guide", "knowledgeBoundary": ["tower-clue"] }],
-              "lore": [{ "id": "clue", "contentKey": "tower-clue", "classification": "PlayerDiscoverableKnowledge", "content": "A clue." }]
+              "lore": [{ "id": "clue", "contentKey": "tower-clue", "classification": "PlayerDiscoverableKnowledge", "category": "Person", "scope": "Character", "subjectReferences": ["guide"], "content": "A clue." }]
             }
             """, new AuthoringPuzzle("first", [new("ItemPossessed", "key")],
                 [new("item-solution", [new("ItemPossessed", "key")]), new("clue-solution", [new("ClueKnown", "tower-clue")])],
@@ -56,15 +57,36 @@ public sealed class AuthoringLoreAndPuzzleValidationTests
     {
         var json = DraftDefinitionEditor.UpsertLocation("{}", new AuthoringLocation("start", "Start", "A path."));
         json = DraftDefinitionEditor.UpsertNpc(json, new AuthoringNpc("guide", "Guide", "Patient", LocationId: "start"));
-        json = DraftDefinitionEditor.UpsertLore(json, new AuthoringLore("clue", "PlayerDiscoverableKnowledge", "tower-clue", "A clue."));
+        json = DraftDefinitionEditor.UpsertLore(json, new AuthoringLore(
+          "clue", "PlayerDiscoverableKnowledge", "tower-clue", "A clue.",
+          SubjectReferences: ["start"], Category: "History", Scope: "Location"));
         json = DraftDefinitionEditor.UpsertPuzzle(json, new AuthoringPuzzle("first"));
         json = DraftDefinitionEditor.UpsertPuzzle(json, new AuthoringPuzzle("second"));
         json = DraftDefinitionEditor.UpsertPuzzleSolution(json, "first", new AuthoringPuzzleSolution("alternate", [new("ClueKnown", "tower-clue")]));
         json = DraftDefinitionEditor.UpsertPuzzleOutcome(json, "first", new AuthoringPuzzleOutcome("continue", "FollowOnPuzzle", "second"));
         json = DraftDefinitionEditor.AddPuzzleChainLink(json, "first", "second");
 
-        json.Should().Contain("guide").And.Contain("tower-clue").And.Contain("alternate").And.Contain("second");
+        json.Should().Contain("guide").And.Contain("tower-clue").And.Contain("alternate").And.Contain("second")
+          .And.Contain("\"category\":\"History\"")
+          .And.Contain("\"scope\":\"Location\"")
+          .And.Contain("\"subjectReferences\":[\"start\"]");
     }
+
+      [Fact]
+      public void DefinitionEditor_MovingNpcReplacesItsPreviousLocationPlacement()
+      {
+        var json = DraftDefinitionEditor.UpsertLocation("{}", new AuthoringLocation("harbor", "Harbor", "A harbor."));
+        json = DraftDefinitionEditor.UpsertLocation(json, new AuthoringLocation("tower", "Tower", "A tower."));
+        json = DraftDefinitionEditor.UpsertNpc(json, new AuthoringNpc("guide", "Guide", "Patient", LocationId: "harbor"));
+        json = DraftDefinitionEditor.UpsertNpc(json, new AuthoringNpc("guide", "Guide", "Patient", LocationId: "tower"));
+        using var document = JsonDocument.Parse(json);
+        var locations = document.RootElement.GetProperty("locations").EnumerateArray().ToArray();
+
+        locations.Single(location => location.GetProperty("id").GetString() == "harbor")
+          .GetProperty("npcIds").EnumerateArray().Should().BeEmpty();
+        locations.Single(location => location.GetProperty("id").GetString() == "tower")
+          .GetProperty("npcIds").EnumerateArray().Select(id => id.GetString()).Should().ContainSingle().Which.Should().Be("guide");
+      }
 
     private static AdventureDraft Draft(string start, string definition) =>
         new(AdventureDraftId.New(), "advanced-test", "Advanced Test", start, definition);

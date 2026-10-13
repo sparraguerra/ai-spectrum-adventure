@@ -9,6 +9,7 @@ public sealed class Npc
     private readonly HashSet<string> _knowledgeBoundary;
     private readonly HashSet<string> _allowedLoreReferences;
     private readonly List<string> _goals;
+    private readonly List<string> _relationships;
     private readonly List<ConversationTurn> _conversationMemory = [];
     private readonly List<WorldFlag> _relationshipFlags = [];
 
@@ -18,6 +19,7 @@ public sealed class Npc
     public IReadOnlySet<string> KnowledgeBoundary => _knowledgeBoundary;
     public IReadOnlySet<string> AllowedLoreReferences => _allowedLoreReferences;
     public IReadOnlyCollection<string> Goals => _goals;
+    public IReadOnlyCollection<string> Relationships => _relationships;
     public LocationId? WorldLocationId { get; private set; }
     public long StateVersion { get; private set; }
     public IReadOnlyCollection<ConversationTurn> ConversationMemory => _conversationMemory;
@@ -31,7 +33,8 @@ public sealed class Npc
         LocationId? worldLocationId = null,
         IEnumerable<string>? goals = null,
         IEnumerable<string>? allowedLoreReferences = null,
-        long stateVersion = 1)
+        long stateVersion = 1,
+        IEnumerable<string>? relationships = null)
     {
         if (stateVersion < 1) throw new ArgumentOutOfRangeException(nameof(stateVersion));
         Id = id;
@@ -40,6 +43,7 @@ public sealed class Npc
         _knowledgeBoundary = [.. knowledgeBoundary];
         _allowedLoreReferences = [.. allowedLoreReferences ?? _knowledgeBoundary];
         _goals = [.. goals ?? []];
+        _relationships = [.. relationships ?? []];
         WorldLocationId = worldLocationId;
         StateVersion = stateVersion;
     }

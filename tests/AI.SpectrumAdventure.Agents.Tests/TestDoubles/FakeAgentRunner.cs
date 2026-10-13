@@ -9,6 +9,7 @@ public sealed class FakeAgentRunner : IAgentRunner
     private readonly Queue<Func<object>> _responses = new();
 
     public int CallCount { get; private set; }
+    public string? LastPrompt { get; private set; }
 
     public FakeAgentRunner EnqueueResult<T>(T result) where T : notnull
     {
@@ -25,6 +26,7 @@ public sealed class FakeAgentRunner : IAgentRunner
     public Task<T> RunAsync<T>(string prompt, CancellationToken cancellationToken = default)
     {
         CallCount++;
+        LastPrompt = prompt;
         if (_responses.Count == 0)
         {
             throw new InvalidOperationException("FakeAgentRunner has no more queued responses.");

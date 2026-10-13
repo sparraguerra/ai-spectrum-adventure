@@ -1,6 +1,7 @@
 namespace AI.SpectrumAdventure.Domain.Games;
 
 using AI.SpectrumAdventure.Domain.Authoring;
+using AI.SpectrumAdventure.Domain.Worlds;
 
 /// <summary>
 /// A fully serializable, flat mirror of a Game aggregate's state, used only at the persistence boundary
@@ -45,7 +46,9 @@ public sealed record LocationSnapshot(
     List<ExitSnapshot> Exits,
     List<string> ObjectIds,
     List<string> NpcIds,
-    bool Discovered);
+    bool Discovered,
+    LocationType? Type = null,
+    EnvironmentalProperties? Environment = null);
 
 public sealed record ItemSnapshot(
     string Id,
@@ -68,7 +71,8 @@ public sealed record NpcSnapshot(
     string? WorldLocationId = null,
     List<string>? Goals = null,
     List<string>? AllowedLoreReferences = null,
-    long StateVersion = 1);
+    long StateVersion = 1,
+    List<string>? Relationships = null);
 
 public sealed record PuzzleSnapshot(
     string Id,

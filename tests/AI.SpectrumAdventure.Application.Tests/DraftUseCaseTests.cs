@@ -5,6 +5,7 @@ using AI.SpectrumAdventure.Application.Authoring;
 using AI.SpectrumAdventure.Contracts;
 using AI.SpectrumAdventure.Domain.Authoring;
 using FluentAssertions;
+using System.Text.Json;
 
 public sealed class DraftUseCaseTests
 {
@@ -18,14 +19,26 @@ public sealed class DraftUseCaseTests
         var created = await useCases.CreateAsync(request);
         created.Succeeded.Should().BeTrue();
         created.Draft.Should().NotBeNull();
+        AssertDefinitionMetadata(created.Draft!.DefinitionJson, "harbor", "Harbor", "pier");
 
         var saved = await useCases.SaveAsync(created.Draft!.Id, created.Draft.Revision,
-            request with { Title = "Edited Harbor" });
+            request with { Title = "Edited Harbor", StartingLocationId = "dock" });
         var reopened = await useCases.LoadAsync("harbor");
 
         saved.Succeeded.Should().BeTrue();
         reopened.Draft!.Title.Should().Be("Edited Harbor");
+        reopened.Draft.StartingLocationId.Should().Be("dock");
+        AssertDefinitionMetadata(reopened.Draft.DefinitionJson, "harbor", "Edited Harbor", "dock");
         reopened.Draft.Revision.Should().Be(1);
+    }
+
+    private static void AssertDefinitionMetadata(string definitionJson, string id, string title, string startingLocationId)
+    {
+        using var document = JsonDocument.Parse(definitionJson);
+        var root = document.RootElement;
+        root.GetProperty("id").GetString().Should().Be(id);
+        root.GetProperty("title").GetString().Should().Be(title);
+        root.GetProperty("startingLocationId").GetString().Should().Be(startingLocationId);
     }
 
     [Fact]
