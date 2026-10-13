@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AI.SpectrumAdventure.Infrastructure.Migrations
 {
     [DbContext(typeof(AdventureDbContext))]
-    [Migration("20260903113306_InitialCreate")]
+    [Migration("20261013094707_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

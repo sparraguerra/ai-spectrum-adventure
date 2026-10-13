@@ -14,6 +14,8 @@ param azureAiEndpoint string
 param azureAiChatDeployment string
 param azureAiImageDeployment string
 param storageConnectionString string
+param allowPublicBlobAccess bool
+param publicBlobEndpoint string
 param appInsightsConnectionString string
 param logAnalyticsCustomerId string = ''
 @secure()
@@ -106,6 +108,14 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'AzureStorage__ConnectionString'
               secretRef: 'storage-connection'
+            }
+            {
+              name: 'AzureStorage__AllowPublicBlobAccess'
+              value: allowPublicBlobAccess ? 'true' : 'false'
+            }
+            {
+              name: 'AzureStorage__PublicBlobEndpoint'
+              value: publicBlobEndpoint
             }
             {
               name: 'ApplicationInsights__ConnectionString'

@@ -2,9 +2,10 @@ namespace AI.SpectrumAdventure.Infrastructure.Persistence;
 
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Domain.Games;
+using AI.SpectrumAdventure.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class EfVisualAssetRepository(AdventureDbContext dbContext) : IVisualAssetRepository
+public sealed class EfVisualAssetRepository(AdventureDbContext dbContext, string? publicBlobEndpoint = null) : IVisualAssetRepository
 {
     public async Task<VisualAsset?> FindAsync(string sceneStateKey, CancellationToken cancellationToken = default)
     {
@@ -19,7 +20,7 @@ public sealed class EfVisualAssetRepository(AdventureDbContext dbContext) : IVis
         var asset = new VisualAsset(record.SceneStateKey);
         if (record.Status == nameof(VisualAssetStatus.Ready) && record.BlobUri is not null && record.GeneratedAt is not null)
         {
-            asset.MarkReady(record.BlobUri, record.GeneratedAt.Value);
+            asset.MarkReady(BlobUriRewriter.RewriteForClient(record.BlobUri, publicBlobEndpoint), record.GeneratedAt.Value);
         }
         else if (record.Status == nameof(VisualAssetStatus.Failed))
         {

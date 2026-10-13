@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "18277429315864593840"
+      "templateHash": "1816525212545515929"
     }
   },
   "parameters": {
@@ -133,6 +133,13 @@
       "metadata": {
         "description": "Application Insights connection string used by the app."
       }
+    },
+    "allowPublicSceneBlobs": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Allow anonymous read access to generated scene blobs. Container listing remains disabled."
+      }
     }
   },
   "variables": {
@@ -193,7 +200,7 @@
       "kind": "StorageV2",
       "properties": {
         "accessTier": "Hot",
-        "allowBlobPublicAccess": false,
+        "allowBlobPublicAccess": "[parameters('allowPublicSceneBlobs')]",
         "minimumTlsVersion": "TLS1_2",
         "supportsHttpsTrafficOnly": true,
         "publicNetworkAccess": "Enabled",
@@ -213,7 +220,7 @@
       "apiVersion": "2023-05-01",
       "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', variables('visualAssetsContainerName'))]",
       "properties": {
-        "publicAccess": "None"
+        "publicAccess": "[if(parameters('allowPublicSceneBlobs'), 'Blob', 'None')]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
@@ -751,6 +758,12 @@
           "storageConnectionString": {
             "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', variables('storageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').keys[0].value, environment().suffixes.storage)]"
           },
+          "allowPublicBlobAccess": {
+            "value": "[parameters('allowPublicSceneBlobs')]"
+          },
+          "publicBlobEndpoint": {
+            "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.blob]"
+          },
           "appInsightsConnectionString": "[if(empty(parameters('appInsightsConnectionString')), createObject('value', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString), createObject('value', parameters('appInsightsConnectionString')))]",
           "logAnalyticsCustomerId": {
             "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName')), '2022-10-01').customerId]"
@@ -766,7 +779,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "7899953664568508595"
+              "templateHash": "10362505078541244247"
             }
           },
           "parameters": {
@@ -814,6 +827,12 @@
               "type": "string"
             },
             "storageConnectionString": {
+              "type": "string"
+            },
+            "allowPublicBlobAccess": {
+              "type": "bool"
+            },
+            "publicBlobEndpoint": {
               "type": "string"
             },
             "appInsightsConnectionString": {
@@ -897,6 +916,10 @@
                           "value": "Production"
                         },
                         {
+                          "name": "Database__MigrateOnStartup",
+                          "value": "true"
+                        },
+                        {
                           "name": "ConnectionStrings__AdventureDb",
                           "secretRef": "postgres-connection"
                         },
@@ -915,6 +938,14 @@
                         {
                           "name": "AzureStorage__ConnectionString",
                           "secretRef": "storage-connection"
+                        },
+                        {
+                          "name": "AzureStorage__AllowPublicBlobAccess",
+                          "value": "[if(parameters('allowPublicBlobAccess'), 'true', 'false')]"
+                        },
+                        {
+                          "name": "AzureStorage__PublicBlobEndpoint",
+                          "value": "[parameters('publicBlobEndpoint')]"
                         },
                         {
                           "name": "ApplicationInsights__ConnectionString",

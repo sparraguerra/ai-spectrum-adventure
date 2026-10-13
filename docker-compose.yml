@@ -13,17 +13,21 @@ services:
       AzureAI__ApiKey: ${AZURE_AI_API_KEY}
       AzureAI__Endpoint: ${AZURE_AI_ENDPOINT}
       AzureStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      AzureStorage__AllowPublicBlobAccess: "true"
+      AzureStorage__PublicBlobEndpoint: http://localhost:10000
+      DataProtection__KeyRingPath: /var/aspnet/DataProtection-Keys
     depends_on:
       postgres:
         condition: service_healthy
       azurite:
-        condition: service_started
+        condition: service_healthy
+    volumes:
+      - data-protection-keys:/var/aspnet/DataProtection-Keys
 
   postgres:
     image: postgres:16
     container_name: postgres
     environment:
-      POSTGRES_DB: adventure
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
@@ -38,12 +42,23 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:latest
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
     container_name: azurite
-    command: azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
+    ports:
+      - "127.0.0.1:10000:10000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const net = require('node:net'); const socket = net.connect(10000, '127.0.0.1'); socket.once('connect', () => { socket.end(); process.exit(0); }); socket.once('error', () => process.exit(1));"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
     volumes:
       - ./azurite-data:/data
 
 volumes:
-  postgres-data:
-  azurite-data:
+  data-protection-keys:

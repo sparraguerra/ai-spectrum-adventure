@@ -83,10 +83,16 @@ else
 
         while (await timer.WaitForNextTickAsync(cancellationToken))
         {
-            var worldLocation = World?.Locations.SingleOrDefault(location => location.Id.Value == game.CurrentLocation.Id.Value);
+            var currentLocation = game.CurrentLocation;
+            var visibleObjectIds = currentLocation.ObjectIds
+                .Select(game.GetItem)
+                .Where(item => item.LocationId == currentLocation.Id && item.IsRevealed(game.WorldFlagKeys))
+                .Select(item => item.Id.Value)
+                .ToList();
+            var worldLocation = World?.Locations.SingleOrDefault(location => location.Id.Value == currentLocation.Id.Value);
             var sceneStateKey = worldLocation is null
-                ? SceneStateKeyBuilder.Build(game.CurrentLocation.Id.Value, game.WorldFlagKeys)
-                : SceneStateKeyBuilder.Build(World!.Id.Value, worldLocation.Id.Value, worldLocation.SceneVersion, game.WorldFlagKeys);
+                ? SceneStateKeyBuilder.Build(currentLocation.Id.Value, game.WorldFlagKeys, visibleObjectIds)
+                : SceneStateKeyBuilder.Build(World!.Id.Value, worldLocation.Id.Value, worldLocation.SceneVersion, game.WorldFlagKeys, visibleObjectIds);
             using var scope = ScopeFactory.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IVisualAssetRepository>();
             var asset = await repository.FindAsync(sceneStateKey, cancellationToken);

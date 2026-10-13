@@ -48,8 +48,12 @@ The container reads the following values from environment variables:
 - `AzureAI__ChatDeployment`
 - `AzureAI__ImageDeployment`
 - `AzureStorage__ConnectionString`
+- `AzureStorage__AllowPublicBlobAccess` — enables anonymous blob reads for generated scene images; keep container listing disabled
+- `AzureStorage__PublicBlobEndpoint` — public HTTPS Blob endpoint used to return browser-reachable image URLs (never use the Compose `localhost:10000` endpoint in Azure)
 - `ApplicationInsights__ConnectionString` (also exposed as `APPLICATIONINSIGHTS_CONNECTION_STRING`)
 - `AZURE_CLIENT_ID` — client id of the user-assigned managed identity, required so `DefaultAzureCredential` selects the correct identity inside the container
+
+The storage account must allow blob public access and the `visual-assets` container should use `Blob` access, not `Container` access. This allows anonymous reads of known image URLs without allowing anonymous container listing.
 
 `AzureAI__Endpoint` is populated from the AI Foundry account's Azure OpenAI endpoint (`https://<account>.openai.azure.com/`) unless `azureAiEndpoint` is supplied explicitly.
 
@@ -65,10 +69,10 @@ For the database, the app currently relies on a PostgreSQL connection string. A 
 ## Deployment sequence
 
 1. Build and push the app image to Azure Container Registry.
-2. Provision the Azure resources via the Bicep definitions in `infra/`.
-3. Deploy the Container App referencing the Container Apps Environment and registry image.
+2. For an existing deployment, apply only the required scoped Bicep changes, such as `infra/scene-assets.bicep` for the `visual-assets` ACL. Review `what-if` before applying; do not run the root template for routine app-only updates.
+3. Update the existing Container App image and the two non-secret scene-blob settings while preserving its secrets, identity, ingress, and other environment variables.
 4. Confirm the health endpoint returns HTTP 200 from the public app URL.
-5. Run the quickstart validation scenarios against the live environment.
+5. Run the quickstart validation scenarios and confirm a generated scene blob is anonymously readable and renders in the browser.
 
 ## Current verification status
 

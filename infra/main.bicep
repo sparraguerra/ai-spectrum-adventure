@@ -55,6 +55,9 @@ param azureAiImageModelVersion string = '2025-10-06'
 @description('Application Insights connection string used by the app.')
 param appInsightsConnectionString string = ''
 
+@description('Allow anonymous read access to generated scene blobs. Container listing remains disabled.')
+param allowPublicSceneBlobs bool = false
+
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var normalizedAppName = toLower(replace(appName, '_', '-'))
 var logAnalyticsWorkspaceName = take('law-${normalizedAppName}-${uniqueSuffix}', 63)
@@ -107,7 +110,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   kind: 'StorageV2'
   properties: {
     accessTier: 'Hot'
-    allowBlobPublicAccess: false
+    allowBlobPublicAccess: allowPublicSceneBlobs
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
     publicNetworkAccess: 'Enabled'
@@ -124,7 +127,7 @@ resource visualAssetsContainer 'Microsoft.Storage/storageAccounts/blobServices/c
   parent: blobService
   name: visualAssetsContainerName
   properties: {
-    publicAccess: 'None'
+    publicAccess: allowPublicSceneBlobs ? 'Blob' : 'None'
   }
 }
 
@@ -225,6 +228,8 @@ module containerApp './containerapp.bicep' = {
     azureAiChatDeployment: azureAiChatDeployment
     azureAiImageDeployment: deployAiFoundry && !deployAiFoundryImageModel ? '' : azureAiImageDeployment
     storageConnectionString: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${listKeys(storageAccount.id, storageAccount.apiVersion).keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+    allowPublicBlobAccess: allowPublicSceneBlobs
+    publicBlobEndpoint: storageAccount.properties.primaryEndpoints.blob
     appInsightsConnectionString: empty(appInsightsConnectionString) ? appInsights.properties.ConnectionString : appInsightsConnectionString
     logAnalyticsCustomerId: logAnalytics.properties.customerId
     logAnalyticsSharedKey: listKeys(logAnalytics.id, logAnalytics.apiVersion).primarySharedKey

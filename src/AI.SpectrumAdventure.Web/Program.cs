@@ -19,6 +19,7 @@ using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Azure.Storage.Blobs;
 using Microsoft.Agents.AI;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using OpenTelemetry.Metrics;
@@ -26,6 +27,15 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var dataProtectionKeyRingPath = builder.Configuration["DataProtection:KeyRingPath"];
+
+if (!string.IsNullOrWhiteSpace(dataProtectionKeyRingPath))
+{
+    Directory.CreateDirectory(dataProtectionKeyRingPath);
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyRingPath));
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -152,13 +162,19 @@ builder.Services.AddScoped<AI.SpectrumAdventure.Application.Abstractions.IImageG
 builder.Services.AddScoped<IRetroImageProcessor, RetroImageProcessor>();
 builder.Services.AddScoped<IVisualAssetBlobStore>(sp =>
 {
-    var connectionString = builder.Configuration["AzureStorage:ConnectionString"];
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var connectionString = configuration["AzureStorage:ConnectionString"];
     var containerClient = connectionString is not null
         ? new BlobContainerClient(connectionString, "visual-assets")
         : new BlobContainerClient(new Uri("https://placeholder.blob.core.windows.net/visual-assets"), new DefaultAzureCredential());
-    return new BlobVisualAssetStore(containerClient);
+    return new BlobVisualAssetStore(
+        containerClient,
+        configuration.GetValue("AzureStorage:AllowPublicBlobAccess", false),
+        configuration["AzureStorage:PublicBlobEndpoint"]);
 });
-builder.Services.AddScoped<IVisualAssetRepository, EfVisualAssetRepository>();
+builder.Services.AddScoped<IVisualAssetRepository>(sp => new EfVisualAssetRepository(
+    sp.GetRequiredService<AdventureDbContext>(),
+    sp.GetRequiredService<IConfiguration>()["AzureStorage:PublicBlobEndpoint"]));
 
 var app = builder.Build();
 

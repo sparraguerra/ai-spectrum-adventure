@@ -50,36 +50,33 @@ jobs:
         uses: azure/CLI@v2
         with:
           inlineScript: |
+            ACR_NAME=$(az acr list --resource-group rg-ai-spectrum-adventure --query "[0].name" -o tsv)
             az acr build \
-              --registry spectrumadventure${{ secrets.ACR_SUFFIX || 'unique' }} \
-              --image ai-spectrum-adventure:${{ github.sha }} \
+              --registry "$ACR_NAME" \
+              --image spectrum-adventure:${{ github.sha }} \
               --file Dockerfile .
 
-      - name: Deploy infrastructure and app
+      - name: Update scene blob access and deploy app revision
         uses: azure/CLI@v2
         with:
           inlineScript: |
+            ACR_NAME=$(az acr list --resource-group rg-ai-spectrum-adventure --query "[0].name" -o tsv)
+            ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
+            STORAGE_ACCOUNT=$(az storage account list --resource-group rg-ai-spectrum-adventure --query "[0].name" -o tsv)
+            BLOB_ENDPOINT=$(az storage account show --name "$STORAGE_ACCOUNT" --resource-group rg-ai-spectrum-adventure --query primaryEndpoints.blob -o tsv)
+
             az deployment group create \
               --resource-group rg-ai-spectrum-adventure \
-              --template-file infra/main.bicep \
-              --parameters \
-                location=francecentral \
-                appName=spectrum-adventure \
-                containerAppName=spectrum-adventure-web \
-                containerImage=spectrumadventure${{ secrets.ACR_SUFFIX || 'unique' }}.azurecr.io/ai-spectrum-adventure:${{ github.sha }} \
-                postgresAdminUsername=pgadmin \
-                postgresAdminPassword='${{ secrets.POSTGRES_PASSWORD }}' \
-                deployAiFoundry=${{ vars.DEPLOY_AI_FOUNDRY || 'true' }} \
-                aiFoundryLocation='${{ vars.AZURE_AI_LOCATION || 'swedencentral' }}' \
-                deployAiFoundryImageModel=${{ vars.DEPLOY_AI_IMAGE_MODEL || 'true' }} \
-                azureAiEndpoint='${{ secrets.AZURE_AI_ENDPOINT }}' \
-                azureAiChatDeployment='${{ vars.AZURE_AI_CHAT_DEPLOYMENT || 'gpt-4o-mini' }}' \
-                azureAiChatModelName='${{ vars.AZURE_AI_CHAT_MODEL || 'gpt-4o-mini' }}' \
-                azureAiChatModelVersion='${{ vars.AZURE_AI_CHAT_MODEL_VERSION || '2024-07-18' }}' \
-                azureAiImageDeployment='${{ vars.AZURE_AI_IMAGE_DEPLOYMENT || 'dall-e-3' }}' \
-                azureAiImageModelName='${{ vars.AZURE_AI_IMAGE_MODEL || 'dall-e-3' }}' \
-                azureAiImageModelVersion='${{ vars.AZURE_AI_IMAGE_MODEL_VERSION || '3.0' }}' \
-                appInsightsConnectionString='${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}'
+              --template-file infra/scene-assets.bicep \
+              --parameters storageAccountName="$STORAGE_ACCOUNT"
+
+            az containerapp update \
+              --name spectrum-adventure-web \
+              --resource-group rg-ai-spectrum-adventure \
+              --image "$ACR_LOGIN_SERVER/spectrum-adventure:${{ github.sha }}" \
+              --set-env-vars \
+                AzureStorage__AllowPublicBlobAccess=true \
+                AzureStorage__PublicBlobEndpoint="$BLOB_ENDPOINT"
 
       - name: Smoke test
         uses: azure/CLI@v2
