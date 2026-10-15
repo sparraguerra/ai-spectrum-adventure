@@ -52,8 +52,8 @@
 
 ## Decision 9: Reuse the existing visual pipeline
 
-- **Decision**: Send persisted location and scene-version projections to the existing Visual Art Director and asynchronous image queue. Cache assets by `(WorldId, LocationId, SceneVersion)` and request a new image only on first discovery or a material state change.
-- **Rationale**: It preserves Feature 001's non-blocking retro visual workflow and prevents narrative variation from causing needless image work.
+- **Decision**: Send persisted location and scene-version projections to the existing Visual Art Director and asynchronous image queue. Cache assets by `(AdventureId, AdventureVersionId, LocationId, SceneVersion, visible objects, relevant flags)` and request a new image only on first discovery or a material state change. Do not include the per-playthrough `WorldId` or `GameId`.
+- **Rationale**: It preserves Feature 001's non-blocking retro visual workflow and reuses the same material scene image across playthroughs without mixing different adventures or published versions.
 - **Alternatives considered**: Generate an image for every narration (rejected: high latency/cost and visual inconsistency); separate visual worker Container App (deferred until load requires independent scaling).
 
 ## Decision 10: Azure Container Apps remain one stateless application

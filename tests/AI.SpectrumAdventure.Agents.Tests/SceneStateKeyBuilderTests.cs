@@ -6,11 +6,13 @@ using Xunit;
 
 public class SceneStateKeyBuilderTests
 {
+    private static readonly Guid AdventureVersionId = Guid.Parse("11111111-2222-3333-4444-555555555555");
+
     [Fact]
     public void Build_SameLocationAndFlags_ProducesTheSameKey()
     {
-        var key1 = SceneStateKeyBuilder.Build("dark-forest", ["npc-gave-clue"]);
-        var key2 = SceneStateKeyBuilder.Build("dark-forest", ["npc-gave-clue"]);
+        var key1 = Build("dark-forest", ["npc-gave-clue"]);
+        var key2 = Build("dark-forest", ["npc-gave-clue"]);
 
         key1.Should().Be(key2);
     }
@@ -18,8 +20,8 @@ public class SceneStateKeyBuilderTests
     [Fact]
     public void Build_SameFlagsInDifferentOrder_ProducesTheSameKey()
     {
-        var key1 = SceneStateKeyBuilder.Build("dark-forest", ["tower-unlocked", "npc-gave-clue"]);
-        var key2 = SceneStateKeyBuilder.Build("dark-forest", ["npc-gave-clue", "tower-unlocked"]);
+        var key1 = Build("dark-forest", ["tower-unlocked", "npc-gave-clue"]);
+        var key2 = Build("dark-forest", ["npc-gave-clue", "tower-unlocked"]);
 
         key1.Should().Be(key2);
     }
@@ -27,8 +29,8 @@ public class SceneStateKeyBuilderTests
     [Fact]
     public void Build_DifferentRelevantFlags_ProducesADifferentKey()
     {
-        var beforeUnlock = SceneStateKeyBuilder.Build("dark-forest", []);
-        var afterUnlock = SceneStateKeyBuilder.Build("dark-forest", ["tower-unlocked"]);
+        var beforeUnlock = Build("dark-forest", []);
+        var afterUnlock = Build("dark-forest", ["tower-unlocked"]);
 
         beforeUnlock.Should().NotBe(afterUnlock);
     }
@@ -36,8 +38,8 @@ public class SceneStateKeyBuilderTests
     [Fact]
     public void Build_DifferentLocation_ProducesADifferentKey()
     {
-        var forestEntrance = SceneStateKeyBuilder.Build("forest-entrance", []);
-        var darkForest = SceneStateKeyBuilder.Build("dark-forest", []);
+        var forestEntrance = Build("forest-entrance", []);
+        var darkForest = Build("dark-forest", []);
 
         forestEntrance.Should().NotBe(darkForest);
     }
@@ -45,8 +47,8 @@ public class SceneStateKeyBuilderTests
     [Fact]
     public void Build_DifferentVisibleObjects_ProducesADifferentKey()
     {
-        var beforeTakingKey = SceneStateKeyBuilder.Build("old-bridge", [], ["bridge-key"]);
-        var afterTakingKey = SceneStateKeyBuilder.Build("old-bridge", [], []);
+        var beforeTakingKey = Build("old-bridge", [], ["bridge-key"]);
+        var afterTakingKey = Build("old-bridge", [], []);
 
         beforeTakingKey.Should().NotBe(afterTakingKey);
     }
@@ -54,9 +56,23 @@ public class SceneStateKeyBuilderTests
     [Fact]
     public void Build_SameVisibleObjectsInDifferentOrder_ProducesTheSameKey()
     {
-        var key1 = SceneStateKeyBuilder.Build("old-bridge", [], ["bridge-key", "sign"]);
-        var key2 = SceneStateKeyBuilder.Build("old-bridge", [], ["sign", "bridge-key"]);
+        var key1 = Build("old-bridge", [], ["bridge-key", "sign"]);
+        var key2 = Build("old-bridge", [], ["sign", "bridge-key"]);
 
         key1.Should().Be(key2);
     }
+
+    [Fact]
+    public void Build_DifferentAdventureOrPublishedVersion_ProducesDifferentKeys()
+    {
+        var original = Build("forest-entrance", []);
+        var differentAdventure = SceneStateKeyBuilder.Build("another-adventure", AdventureVersionId, "forest-entrance", 1, []);
+        var differentVersion = SceneStateKeyBuilder.Build("forgotten-tower", Guid.NewGuid(), "forest-entrance", 1, []);
+
+        differentAdventure.Should().NotBe(original);
+        differentVersion.Should().NotBe(original);
+    }
+
+    private static string Build(string locationId, IEnumerable<string> flags, IEnumerable<string>? visibleObjectIds = null) =>
+        SceneStateKeyBuilder.Build("forgotten-tower", AdventureVersionId, locationId, 1, flags, visibleObjectIds);
 }

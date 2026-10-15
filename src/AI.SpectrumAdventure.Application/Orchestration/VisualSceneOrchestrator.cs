@@ -36,9 +36,13 @@ public static class VisualSceneOrchestrator
             .Where(item => item.LocationId == location.Id && item.IsRevealed(game.WorldFlagKeys))
             .ToList();
         var worldLocation = world?.Locations.SingleOrDefault(candidate => candidate.Id.Value == location.Id.Value);
-        var sceneStateKey = worldLocation is null
-            ? SceneStateKeyBuilder.Build(location.Id.Value, game.WorldFlagKeys, visibleObjects.Select(item => item.Id.Value))
-            : SceneStateKeyBuilder.Build(world!.Id.Value, worldLocation.Id.Value, worldLocation.SceneVersion, game.WorldFlagKeys, visibleObjects.Select(item => item.Id.Value));
+        var sceneStateKey = SceneStateKeyBuilder.Build(
+            game.AdventureId,
+            game.AdventureVersionId?.Value,
+            worldLocation?.Id.Value ?? location.Id.Value,
+            worldLocation?.SceneVersion ?? 1,
+            game.WorldFlagKeys,
+            visibleObjects.Select(item => item.Id.Value));
 
         var cached = await visualAssetRepository.FindAsync(sceneStateKey, cancellationToken);
         if (cached is { Status: VisualAssetStatus.Ready })

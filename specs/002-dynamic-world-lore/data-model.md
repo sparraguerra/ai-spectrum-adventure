@@ -71,4 +71,4 @@ Game 1 --- 1 PlayerKnowledge --- * World entity references
 
 ## Persistence boundaries
 
-`WorldRecord` is the concurrency boundary for world-level changes, with child records or a serialized world snapshot as selected during implementation. The required database constraint is unique `(WorldId, GenerationKey)` for generated content. A single transaction writes world changes and any associated game/player-knowledge changes. Blob assets remain non-authoritative references keyed by world, location, and scene version.
+`WorldRecord` is the concurrency boundary for world-level changes, with child records or a serialized world snapshot as selected during implementation. The required database constraint is unique `(WorldId, GenerationKey)` for generated content. A single transaction writes world changes and any associated game/player-knowledge changes. Blob assets remain non-authoritative references keyed by adventure ID, published adventure version, location, scene version, visible objects, and relevant flags. The world-instance ID is intentionally excluded so the same material scene can reuse its image across playthroughs of the same adventure version.

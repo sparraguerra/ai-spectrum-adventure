@@ -34,7 +34,19 @@ public sealed class ImageGenerationWorker(
             var repository = scope.ServiceProvider.GetRequiredService<IVisualAssetRepository>();
 
             var asset = await repository.FindAsync(spec.SceneStateKey, stoppingToken) ?? new VisualAsset(spec.SceneStateKey);
-            activity?.SetTag("image.cache_hit", asset.Status == VisualAssetStatus.Ready);
+            if (asset is { Status: VisualAssetStatus.Ready, BlobUri: not null })
+            {
+                activity?.SetTag("image.cache_hit", true);
+                activity?.SetTag("image.generation_attempted", false);
+                activity?.SetTag("image.success", true);
+                activity?.SetTag("image.status", asset.Status.ToString());
+                await sceneUpdateNotifier.NotifyAsync(
+                    new SceneUpdate(request.GameId, spec.SceneStateKey, asset.BlobUri, asset.Status),
+                    stoppingToken);
+                continue;
+            }
+
+            activity?.SetTag("image.cache_hit", false);
             activity?.SetTag("image.generation_attempted", true);
 
             try

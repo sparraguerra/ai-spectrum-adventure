@@ -13,6 +13,46 @@ using Microsoft.Extensions.Logging.Abstractions;
 public sealed class E2E_ImageFailureTests
 {
     [Fact]
+    public async Task ReadyVisualAsset_DuplicateRequestReusesCachedUriWithoutGenerating()
+    {
+        const string cachedImageUrl = "https://assets.example/cached-scene.png";
+        var queue = new ImageGenerationQueue();
+        var notifier = new SceneUpdateNotifier();
+        var gameId = Guid.NewGuid();
+        var updateReceived = new TaskCompletionSource<SceneUpdate>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var matchingSubscription = notifier.Subscribe(gameId, update =>
+        {
+            updateReceived.TrySetResult(update);
+            return Task.CompletedTask;
+        });
+
+        var services = new ServiceCollection()
+            .AddScoped<IImageGenerator, FailingImageGenerator>()
+            .AddScoped<IRetroImageProcessor, PassThroughImageProcessor>()
+            .AddScoped<IVisualAssetBlobStore, UnusedBlobStore>()
+            .AddScoped<IVisualAssetRepository>(_ => new ReadyVisualAssetRepository(cachedImageUrl))
+            .BuildServiceProvider();
+        var worker = new ImageGenerationWorker(queue, services.GetRequiredService<IServiceScopeFactory>(), notifier, NullLogger<ImageGenerationWorker>.Instance);
+
+        await worker.StartAsync(CancellationToken.None);
+        try
+        {
+            const string sceneStateKey = "adventure:forgotten-tower|location:forest-entrance|objects:sign|flags:";
+            queue.Enqueue(new ImageGenerationRequest(gameId, new VisualSceneSpec("forest-entrance", sceneStateKey, null, ["Weathered Sign"], "still", "zx-spectrum-8bit")));
+
+            var update = await updateReceived.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+            update.Status.Should().Be(VisualAssetStatus.Ready);
+            update.VisualAssetUrl.Should().Be(cachedImageUrl);
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+            await services.DisposeAsync();
+        }
+    }
+
+    [Fact]
     public async Task ImageGenerationFailure_DoesNotInterruptGameplay()
     {
         var queue = new ImageGenerationQueue();
@@ -72,6 +112,18 @@ public sealed class E2E_ImageFailureTests
     private sealed class EphemeralVisualAssetRepository : IVisualAssetRepository
     {
         public Task<VisualAsset?> FindAsync(string sceneStateKey, CancellationToken cancellationToken = default) => Task.FromResult<VisualAsset?>(null);
+
+        public Task SaveAsync(VisualAsset asset, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class ReadyVisualAssetRepository(string blobUri) : IVisualAssetRepository
+    {
+        public Task<VisualAsset?> FindAsync(string sceneStateKey, CancellationToken cancellationToken = default)
+        {
+            var asset = new VisualAsset(sceneStateKey);
+            asset.MarkReady(blobUri, DateTimeOffset.UtcNow);
+            return Task.FromResult<VisualAsset?>(asset);
+        }
 
         public Task SaveAsync(VisualAsset asset, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }

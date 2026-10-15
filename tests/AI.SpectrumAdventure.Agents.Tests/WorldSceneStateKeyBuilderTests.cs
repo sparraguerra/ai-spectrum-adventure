@@ -6,16 +6,16 @@ using FluentAssertions;
 public sealed class WorldSceneStateKeyBuilderTests
 {
     [Fact]
-    public void Build_ChangesOnlyWhenWorldLocationOrMaterialSceneVersionChanges()
+    public void Build_ChangesForAdventureVersionOrMaterialSceneVersion_NotWorldInstance()
     {
-        var worldId = Guid.NewGuid();
-        var original = SceneStateKeyBuilder.Build(worldId, "forest-path", 1, ["opened-gate"], ["sign"]);
-        var same = SceneStateKeyBuilder.Build(worldId, "forest-path", 1, ["opened-gate"], ["sign"]);
-        var changedVersion = SceneStateKeyBuilder.Build(worldId, "forest-path", 2, ["opened-gate"], ["sign"]);
-        var changedWorld = SceneStateKeyBuilder.Build(Guid.NewGuid(), "forest-path", 1, ["opened-gate"], ["sign"]);
+        var adventureVersionId = Guid.NewGuid();
+        var original = SceneStateKeyBuilder.Build("forgotten-tower", adventureVersionId, "forest-path", 1, ["opened-gate"], ["sign"]);
+        var sameAcrossPlaythroughs = SceneStateKeyBuilder.Build("forgotten-tower", adventureVersionId, "forest-path", 1, ["opened-gate"], ["sign"]);
+        var changedSceneVersion = SceneStateKeyBuilder.Build("forgotten-tower", adventureVersionId, "forest-path", 2, ["opened-gate"], ["sign"]);
+        var changedAdventureVersion = SceneStateKeyBuilder.Build("forgotten-tower", Guid.NewGuid(), "forest-path", 1, ["opened-gate"], ["sign"]);
 
-        same.Should().Be(original);
-        changedVersion.Should().NotBe(original);
-        changedWorld.Should().NotBe(original);
+        sameAcrossPlaythroughs.Should().Be(original);
+        changedSceneVersion.Should().NotBe(original);
+        changedAdventureVersion.Should().NotBe(original);
     }
 }

@@ -5,13 +5,56 @@ using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Application.Orchestration;
 using AI.SpectrumAdventure.Contracts;
 using AI.SpectrumAdventure.Domain.Common;
+using AI.SpectrumAdventure.Domain.Authoring;
 using AI.SpectrumAdventure.Domain.Events;
 using AI.SpectrumAdventure.Domain.Games;
+using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Web.Services;
 using FluentAssertions;
 
 public sealed class AsyncUiUpdateTests
 {
+    [Fact]
+    public async Task ReadySceneFromAnotherWorldOfSameAdventure_IsReusedWithoutEnqueue()
+    {
+        var adventureVersionId = AdventureVersionId.New();
+        var createdAt = DateTimeOffset.UtcNow;
+        var firstGame = AdventureWorldFactory.CreateNewGame(new GameId(Guid.NewGuid()), createdAt, AdventureWorldFactory.DefaultAdventureId, adventureVersionId);
+        var secondGame = AdventureWorldFactory.CreateNewGame(new GameId(Guid.NewGuid()), createdAt, AdventureWorldFactory.DefaultAdventureId, adventureVersionId);
+        var firstWorld = WorldBootstrapFactory.Create(firstGame, new WorldId(Guid.NewGuid()));
+        var secondWorld = WorldBootstrapFactory.Create(secondGame, new WorldId(Guid.NewGuid()));
+        var visibleObjectIds = firstGame.CurrentLocation.ObjectIds
+            .Select(firstGame.GetItem)
+            .Where(item => item.LocationId == firstGame.CurrentLocation.Id && item.IsRevealed(firstGame.WorldFlagKeys))
+            .Select(item => item.Id.Value)
+            .ToList();
+        var sceneStateKey = AI.SpectrumAdventure.Application.Games.SceneStateKeyBuilder.Build(
+            firstGame.AdventureId,
+            firstGame.AdventureVersionId?.Value,
+            firstWorld.GetLocation(firstGame.CurrentLocation.Id).Id.Value,
+            firstWorld.GetLocation(firstGame.CurrentLocation.Id).SceneVersion,
+            firstGame.WorldFlagKeys,
+            visibleObjectIds);
+        var cachedImageUrl = "https://assets.example/forest-entrance.png";
+        var repository = new ReadyVisualAssetRepository(sceneStateKey, cachedImageUrl);
+        var queue = new ImageGenerationQueue();
+        var result = new ActionResult(secondGame.Id.Value, true, null, "The scene is unchanged.", true, secondGame.CurrentLocation.Id.Value, [], null);
+
+        var attachedResult = await VisualSceneOrchestrator.AttachVisualAsync(
+            secondGame,
+            result,
+            new StubVisualArtDirector(),
+            queue,
+            repository,
+            ensureCurrentScene: true,
+            world: secondWorld);
+
+        repository.LastQueriedKey.Should().Be(sceneStateKey);
+        attachedResult.VisualAssetUrl.Should().Be(cachedImageUrl);
+        queue.Reader.TryRead(out _).Should().BeFalse();
+        firstWorld.Id.Should().NotBe(secondWorld.Id);
+    }
+
     [Fact]
     public async Task PlayerCanProcessNextAction_WhilePreviousSceneGenerationIsPending()
     {
@@ -97,6 +140,24 @@ public sealed class AsyncUiUpdateTests
     {
         public Task<VisualAsset?> FindAsync(string sceneStateKey, CancellationToken cancellationToken = default) =>
             Task.FromResult<VisualAsset?>(null);
+
+        public Task SaveAsync(VisualAsset asset, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class ReadyVisualAssetRepository(string expectedSceneStateKey, string blobUri) : IVisualAssetRepository
+    {
+        public string? LastQueriedKey { get; private set; }
+
+        public Task<VisualAsset?> FindAsync(string sceneStateKey, CancellationToken cancellationToken = default)
+        {
+            LastQueriedKey = sceneStateKey;
+            if (!string.Equals(sceneStateKey, expectedSceneStateKey, StringComparison.Ordinal))
+                return Task.FromResult<VisualAsset?>(null);
+
+            var asset = new VisualAsset(sceneStateKey);
+            asset.MarkReady(blobUri, DateTimeOffset.UnixEpoch);
+            return Task.FromResult<VisualAsset?>(asset);
+        }
 
         public Task SaveAsync(VisualAsset asset, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
