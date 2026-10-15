@@ -38,4 +38,20 @@ public class AdventureOrchestratorTests
         useMissingItem.Success.Should().BeFalse();
         useMissingItem.Reason.Should().Be("ItemNotInInventory");
     }
+
+    [Fact]
+    public async Task TakingAnItem_RefreshesTheSceneAndDescribesTheLocationWithoutTheCollectedItem()
+    {
+        var repository = new InMemoryGameRepository();
+        var game = await new StartGameUseCase(repository).ExecuteAsync();
+        AdventureOrchestrator.ProcessAction(game, Intent(IntentAction.Go, "North"));
+        AdventureOrchestrator.ProcessAction(game, Intent(IntentAction.Go, "East"));
+
+        var result = AdventureOrchestrator.ProcessAction(game, Intent(IntentAction.Take, AdventureWorldFactory.BridgeKey.Value));
+
+        result.Success.Should().BeTrue();
+        result.SceneChanged.Should().BeTrue();
+        result.Narrative.Should().Contain("You take it.");
+        result.Narrative.Should().NotContain("Rusted Bridge Key");
+    }
 }

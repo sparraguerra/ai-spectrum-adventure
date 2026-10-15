@@ -28,6 +28,12 @@
 <div class="@(IsCrtEnabled ? "crt-enabled" : string.Empty)">
     <div class="adventure-shell">
         <div class="d-flex justify-content-end mb-3">
+                @if (CurrentGame is not null)
+                {
+                    <button class="btn btn-outline-secondary me-3" type="button" @onclick="ReturnToStart" disabled="@IsProcessing">
+                        New game
+                    </button>
+                }
             <label class="crt-toggle">
                 <input type="checkbox" @bind="IsCrtEnabled" />
                 CRT effect
@@ -124,16 +130,6 @@
                             <InventoryPanel Game="CurrentGame" />
                         </div>
                     </div>
-
-                    @if (CurrentWorld is not null)
-                    {
-                        <div class="card shadow-sm border-0 mt-4">
-                            <div class="card-body">
-                                <h2 class="h5 mb-3">Map</h2>
-                                <MapPanel Game="CurrentGame" World="CurrentWorld" />
-                            </div>
-                        </div>
-                    }
                 </div>
             </div>
         }
@@ -154,6 +150,16 @@
     {
         AvailableAdventures = await AdventureCatalog.ListAsync();
         SelectedAdventureId = AvailableAdventures.FirstOrDefault()?.Id ?? AdventureWorldFactory.DefaultAdventureId;
+    }
+
+    private void ReturnToStart()
+    {
+        if (IsProcessing) return;
+
+        CurrentGame = null;
+        CurrentWorld = null;
+        LastResult = null;
+        RecentlyDiscoveredLore = [];
     }
 
     private async Task StartGameAsync()

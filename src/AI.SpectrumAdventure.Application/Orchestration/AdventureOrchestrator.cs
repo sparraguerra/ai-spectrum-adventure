@@ -63,7 +63,7 @@ public static class AdventureOrchestrator
         }
 
         var sceneChanged = validation.ProposedEvents.Any(e =>
-            e is PlayerMovedEvent or PuzzleSolvedEvent or LocationDiscoveredEvent or ObjectStateChangedEvent);
+            e is PlayerMovedEvent or PuzzleSolvedEvent or LocationDiscoveredEvent or ObjectStateChangedEvent or ItemTakenEvent);
 
         var successResult = BuildResult(game, success: true, RulesFailureReason.None, BuildSuccessNarrative(intent, game), sceneChanged, puzzleEvaluation);
         activity?.SetTag("game.action_success", successResult.Success);
@@ -145,7 +145,7 @@ public static class AdventureOrchestrator
         {
             IntentAction.Look => GetLocationDescriptionQuery.Execute(game),
             IntentAction.Go => GetLocationDescriptionQuery.Execute(game),
-            IntentAction.Take => $"You take the {game.GetItem(new ItemId(intent.Target!)).Name}.",
+            IntentAction.Take => $"You take it. {GetLocationDescriptionQuery.Execute(game)}",
             IntentAction.Examine => game.GetItem(new ItemId(intent.Target!)).Description,
             IntentAction.Open => game.GetItem(new ItemId(intent.Target!)).Description,
             IntentAction.Use when game.Puzzle.Solved => "With a heavy groan, the tower door swings open.",
