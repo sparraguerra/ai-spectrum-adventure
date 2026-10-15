@@ -27,13 +27,17 @@
 
 <div class="@(IsCrtEnabled ? "crt-enabled" : string.Empty)">
     <div class="adventure-shell">
-        <div class="d-flex justify-content-end mb-3">
-                @if (CurrentGame is not null)
-                {
-                    <button class="btn btn-outline-secondary me-3" type="button" @onclick="ReturnToStart" disabled="@IsProcessing">
-                        New game
-                    </button>
-                }
+        <div class="d-flex justify-content-between mb-3">
+            @if (CurrentGame is not null)
+            {
+                <button class="btn btn-primary" type="button" @onclick="ReturnToStart" disabled="@IsProcessing">
+                    New game
+                </button>
+            }
+            else
+            {
+                <span></span>
+            }
             <label class="crt-toggle">
                 <input type="checkbox" @bind="IsCrtEnabled" />
                 CRT effect
