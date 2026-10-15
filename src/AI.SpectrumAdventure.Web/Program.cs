@@ -23,10 +23,10 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
 
 var dataProtectionKeyRingPath = builder.Configuration["DataProtection:KeyRingPath"];
 
@@ -43,43 +43,15 @@ builder.Services.AddRazorComponents()
 
 var applicationInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
 
+builder.Services.ConfigureOpenTelemetryTracerProvider(tracing =>
+    tracing.AddSource("AI.SpectrumAdventure.Application", "AI.SpectrumAdventure.Agents", "AI.SpectrumAdventure.Infrastructure"));
+
 if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
 {
-    builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
-    .WithTracing(tracing =>
-    {
-        tracing
-            .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddSource("AI.SpectrumAdventure.Application", "AI.SpectrumAdventure.Agents", "AI.SpectrumAdventure.Infrastructure");
-
-        if (builder.Environment.IsDevelopment())
-        {
-            tracing.AddConsoleExporter();
-        }
-
-        if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
-        {
-            tracing.AddAzureMonitorTraceExporter(options => options.ConnectionString = applicationInsightsConnectionString);
-        }
-    })
-    .WithMetrics(metrics =>
-    {
-        metrics
-            .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation();
-
-        if (builder.Environment.IsDevelopment())
-        {
-            metrics.AddConsoleExporter();
-        }
-
-        if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
-        {
-            metrics.AddAzureMonitorMetricExporter(options => options.ConnectionString = applicationInsightsConnectionString);
-        }
-    });
+    builder.Services.ConfigureOpenTelemetryTracerProvider(tracing =>
+        tracing.AddAzureMonitorTraceExporter(options => options.ConnectionString = applicationInsightsConnectionString));
+    builder.Services.ConfigureOpenTelemetryMeterProvider(metrics =>
+        metrics.AddAzureMonitorMetricExporter(options => options.ConnectionString = applicationInsightsConnectionString));
 }
 
 var adventureDbConnectionString = builder.Configuration.GetConnectionString("AdventureDb")
@@ -163,7 +135,8 @@ builder.Services.AddScoped<IRetroImageProcessor, RetroImageProcessor>();
 builder.Services.AddScoped<IVisualAssetBlobStore>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    var connectionString = configuration["AzureStorage:ConnectionString"];
+    var connectionString = configuration.GetConnectionString("AzureStorage")
+        ?? configuration["AzureStorage:ConnectionString"];
     var containerClient = connectionString is not null
         ? new BlobContainerClient(connectionString, "visual-assets")
         : new BlobContainerClient(new Uri("https://placeholder.blob.core.windows.net/visual-assets"), new DefaultAzureCredential());
@@ -206,7 +179,7 @@ app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapDefaultEndpoints();
 app.MapGet("/docs/adventure-authoring-guide.md", () =>
 {
     var manualPath = Path.Combine(AppContext.BaseDirectory, "docs", "adventure-authoring-guide.md");

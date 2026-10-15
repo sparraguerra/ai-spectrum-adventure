@@ -30,21 +30,20 @@ See [specs/001-conversational-adventure-mvp/plan.md](specs/001-conversational-ad
 dotnet restore
 dotnet build
 dotnet test
-dotnet run --project src/AI.SpectrumAdventure.Web
+dotnet run --project src/AI.SpectrumAdventure.AppHost
 ```
 
-### Local database
+The AppHost starts the web application, PostgreSQL 16, and the Azurite Blob Storage emulator. Use the dashboard endpoint printed by Aspire to open the adventure and inspect the managed resources; `<web-endpoint>/health` and `<web-endpoint>/alive` are available in Development.
 
-`Game` state persists as a JSON snapshot in a single `games` table (see `AI.SpectrumAdventure.Infrastructure/Persistence`), targeting PostgreSQL in production. For local development:
+PostgreSQL, Azurite blobs, and the local Data Protection key ring persist across normal AppHost restarts. To deliberately reset only that local state, stop the AppHost and run:
 
 ```powershell
-docker run --name adventure-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=adventure -p 5432:5432 -d postgres:16
-dotnet user-secrets set "ConnectionStrings:AdventureDb" "Host=localhost;Database=adventure;Username=postgres;Password=postgres" --project src/AI.SpectrumAdventure.Web
+pwsh ./scripts/reset-local-state.ps1
 ```
 
-EF Core creates the `games` table automatically via `dbContext.Database.EnsureCreated()`/migrations once a design-time migration is added (`dotnet ef migrations add InitialCreate --project src/AI.SpectrumAdventure.Infrastructure --startup-project src/AI.SpectrumAdventure.Web`); the automated test suite exercises the same repository logic against EF Core's InMemory provider, so no database is required to run `dotnet test`.
+The script requires you to type `RESET`; it does not target Azure resources, production infrastructure, or existing `postgres-data` and `azurite-data` folders.
 
-For full local setup (secrets, Azure AI configuration) and manual validation scenarios, see [specs/001-conversational-adventure-mvp/quickstart.md](specs/001-conversational-adventure-mvp/quickstart.md).
+AI-backed narration and image generation are optional for local topology validation. Configure Azure AI values with user secrets on the web project; never add them to tracked configuration. See [specs/004-aspire-local-orchestration/quickstart.md](specs/004-aspire-local-orchestration/quickstart.md) for the complete Aspire workflow.
 
 For the complete author workflow, including the editor example, validation, publication, version restore, AI proposal boundaries, and playtesting, see [docs/adventure-authoring-guide.md](docs/adventure-authoring-guide.md).
 
@@ -72,22 +71,5 @@ dotnet test
 
 The test suite uses deterministic generators and test doubles; it does not require a live Azure AI endpoint. See [specs/002-dynamic-world-lore/quickstart.md](specs/002-dynamic-world-lore/quickstart.md) for Feature 002 scenarios.
 
-## Container development
+For local dependencies, start `AI.SpectrumAdventure.AppHost` using the Aspire workflow above.
 
-The application is packaged as a stateless .NET 10 container. Runtime configuration comes from environment variables; no connection string, Azure endpoint, or storage credential is included in the image.
-
-```powershell
-docker compose up --build
-Invoke-WebRequest http://localhost:8080/health
-docker compose down --volumes
-```
-
-The compose environment starts PostgreSQL and Azurite for local use. Supply real Azure settings only through your shell or a local ignored environment file:
-
-```powershell
-$env:AZURE_AI_ENDPOINT = "https://<resource>.openai.azure.com"
-$env:POSTGRES_PASSWORD = "<local-password>"
-docker compose up --build
-```
-
-Configuration follows ASP.NET Core environment-variable binding: `ConnectionStrings__AdventureDb`, `AzureAI__Endpoint`, `AzureAI__ChatDeployment`, `AzureAI__ImageDeployment`, `AzureStorage__ConnectionString`, and `ApplicationInsights__ConnectionString`.

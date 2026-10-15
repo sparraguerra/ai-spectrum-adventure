@@ -24,4 +24,5 @@ artifacts/
 appsettings.*.local.json
 *.env
 /*-data
+/.aspire/
 /.env

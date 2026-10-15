@@ -6,6 +6,7 @@
     <ProjectReference Include="..\AI.SpectrumAdventure.Agents\AI.SpectrumAdventure.Agents.csproj" />
     <ProjectReference Include="..\AI.SpectrumAdventure.Contracts\AI.SpectrumAdventure.Contracts.csproj" />
     <ProjectReference Include="..\AI.SpectrumAdventure.Domain\AI.SpectrumAdventure.Domain.csproj" />
+    <ProjectReference Include="..\AI.SpectrumAdventure.ServiceDefaults\AI.SpectrumAdventure.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>
