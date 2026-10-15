@@ -122,6 +122,12 @@ public sealed class Game
                 Player.Inventory.Add(e.ItemId);
                 break;
 
+            case ItemDroppedEvent e:
+                Player.Inventory.Remove(e.ItemId);
+                GetItem(e.ItemId).MoveTo(e.LocationId);
+                GetLocation(e.LocationId).AddItem(e.ItemId);
+                break;
+
             case ItemUsedEvent:
                 // Item-specific consequences (e.g., a puzzle solution) are expressed via their own dedicated events
                 // (e.g., PuzzleSolvedEvent) applied alongside this one; this event itself only records the usage.

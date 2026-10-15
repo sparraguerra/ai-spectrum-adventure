@@ -1,0 +1,162 @@
+{
+  "id": "tide-beneath-the-harbor",
+  "title": "The Tide Beneath the Harbor",
+  "startingLocationId": "stone-pier",
+  "locations": [
+    {
+      "id": "stone-pier",
+      "name": "Stone Pier",
+      "description": "The tide is out, but a rusted buoy taps three times beneath the salt fog. To the north, the harbor town's shuttered houses face the water.",
+      "type": "Settlement",
+      "environment": {
+        "terrain": "Stone",
+        "climate": "cold maritime",
+        "lighting": "overcast dawn",
+        "features": ["salt fog", "wet timber"]
+      },
+      "exits": [
+        { "direction": "North", "to": "salt-street" }
+      ],
+      "objectIds": ["rusted-buoy"]
+    },
+    {
+      "id": "salt-street",
+      "name": "Salt Street",
+      "description": "The narrow street climbs between weather-beaten facades. Shadowed figures watch the sea from behind their windows. An anchor-painted door leads to the Low Tide Inn; east, the road fades into salt pools.",
+      "type": "Path",
+      "environment": {
+        "terrain": "Stone",
+        "climate": "cold maritime",
+        "lighting": "gray daylight",
+        "features": ["closed shutters", "smell of kelp"]
+      },
+      "exits": [
+        { "direction": "South", "to": "stone-pier" },
+        { "direction": "West", "to": "low-tide-inn" },
+        { "direction": "East", "to": "salt-marsh" }
+      ]
+    },
+    {
+      "id": "low-tide-inn",
+      "name": "Low Tide Inn",
+      "description": "The common room is nearly empty. Ines, the lighthouse keeper, dries a cup beside a fogged window. She is not surprised to see you, though her eyes keep drifting toward the pier buoy.",
+      "type": "Interior",
+      "environment": {
+        "terrain": "Stone",
+        "climate": "damp",
+        "lighting": "weak lamplight",
+        "features": ["salt smell", "fogged windows"]
+      },
+      "exits": [
+        { "direction": "East", "to": "salt-street" }
+      ],
+      "npcIds": ["ines-the-lighthouse-keeper"]
+    },
+    {
+      "id": "salt-marsh",
+      "name": "Salt Marsh",
+      "description": "White crust rims the dark pools. A triangular bronze piece, marked with three notches, juts from the roots of a collapsed structure.",
+      "type": "Path",
+      "environment": {
+        "terrain": "Marsh",
+        "climate": "cold maritime",
+        "lighting": "clouded",
+        "features": ["brackish pools", "black roots"]
+      },
+      "exits": [
+        { "direction": "West", "to": "salt-street" },
+        { "direction": "North", "to": "leaning-lighthouse" }
+      ],
+      "objectIds": ["bronze-counterweight"]
+    },
+    {
+      "id": "leaning-lighthouse",
+      "name": "Leaning Lighthouse",
+      "description": "The lighthouse tilts toward the water as if listening beneath the cliffs. Its lamp is dark. A stair descends below the tideline.",
+      "type": "Landmark",
+      "environment": {
+        "terrain": "Stone",
+        "climate": "cold maritime",
+        "lighting": "perpetual twilight",
+        "features": ["eroded stone", "salt wind"]
+      },
+      "exits": [
+        { "direction": "South", "to": "salt-marsh" },
+        { "direction": "Down", "to": "sluice-chamber" }
+      ]
+    },
+    {
+      "id": "sluice-chamber",
+      "name": "Sluice Chamber",
+      "description": "Water reaches your ankles. A circular sluice trembles with a low sound from the open sea. At its center is a triangular slot, with three worn marks around the rim.",
+      "type": "Cavern",
+      "environment": {
+        "terrain": "Water",
+        "climate": "cold and waterlogged",
+        "lighting": "blue light through a grate",
+        "features": ["rising water", "low resonance"]
+      },
+      "exits": [
+        { "direction": "Up", "to": "leaning-lighthouse" }
+      ],
+      "objectIds": ["submerged-sluice"]
+    }
+  ],
+  "items": [
+    {
+      "id": "rusted-buoy",
+      "name": "Rusted Buoy",
+      "description": "The buoy taps three times, then falls silent. For a moment, the sound seems to continue underwater after the metal stops moving.",
+      "states": ["Visible", "Interactive"]
+    },
+    {
+      "id": "bronze-counterweight",
+      "name": "Bronze Counterweight",
+      "description": "A heavy, cold triangular piece. It has three notches and one face polished smooth by use.",
+      "states": ["Visible", "Collectible"]
+    },
+    {
+      "id": "submerged-sluice",
+      "name": "Submerged Sluice",
+      "description": "The slot accepts a triangular piece. The three marks around the rim match the buoy's rhythm when the tide runs out.",
+      "states": ["Visible", "Interactive"]
+    }
+  ],
+  "npcs": [
+    {
+      "id": "ines-the-lighthouse-keeper",
+      "name": "Ines, the Lighthouse Keeper",
+      "personality": "Reserved, clear-eyed, and careful with her words. She distrusts anyone who mocks the harbor's customs, but answers respectful questions.",
+      "locationId": "low-tide-inn",
+      "goals": ["Keep anyone from opening the sluice at high tide", "Protect the people of the harbor"],
+      "relationships": ["She has known the pier buoy's rhythm since childhood"],
+      "knowledgeBoundary": ["receding-tide-rhythm"]
+    }
+  ],
+  "lore": [
+    {
+      "id": "receding-tide-clue",
+      "classification": "PlayerDiscoverableKnowledge",
+      "category": "Geography",
+      "scope": "Character",
+      "contentKey": "receding-tide-rhythm",
+      "subjectReferences": ["ines-the-lighthouse-keeper"],
+      "isProtected": true,
+      "content": "Adjust the sluice only as the tide recedes. Fit the counterweight with its polished face outward, after the buoy's third strike."
+    }
+  ],
+  "puzzles": [
+    {
+      "id": "submerged-sluice",
+      "solutions": [
+        {
+          "id": "set-counterweight-at-receding-tide",
+          "conditions": [
+            { "type": "ItemPossessed", "referenceId": "bronze-counterweight" },
+            { "type": "ClueKnown", "referenceId": "receding-tide-rhythm" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -28,4 +28,14 @@ public static class InventoryRules
 
         return RulesValidationResult.Ok(new ItemTakenEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, itemId, game.Player.CurrentLocationId));
     }
+
+    public static RulesValidationResult ValidateDrop(ItemId itemId, Game game)
+    {
+        if (!game.Player.Inventory.Contains(itemId))
+        {
+            return RulesValidationResult.Fail(RulesFailureReason.ItemNotInInventory);
+        }
+
+        return RulesValidationResult.Ok(new ItemDroppedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, itemId, game.Player.CurrentLocationId));
+    }
 }

@@ -43,6 +43,12 @@ public static partial class CommandPatternInterpreter
             return Intent(IntentAction.Take, takeTarget, rawInput);
         }
 
+        var dropMatch = DropPattern().Match(trimmed);
+        if (dropMatch.Success && WorldVocabulary.TryResolveTarget(dropMatch.Groups["target"].Value, out var dropTarget))
+        {
+            return Intent(IntentAction.Drop, dropTarget, rawInput);
+        }
+
         var openMatch = OpenPattern().Match(trimmed);
         if (openMatch.Success && WorldVocabulary.TryResolveTarget(openMatch.Groups["target"].Value, out var openTarget))
         {
@@ -97,6 +103,9 @@ public static partial class CommandPatternInterpreter
 
     [GeneratedRegex(@"^(take|grab|pick\s+up|get)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
     private static partial Regex TakePattern();
+
+    [GeneratedRegex(@"^(drop|leave|put\s+down)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
+    private static partial Regex DropPattern();
 
     [GeneratedRegex(@"^(open)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
     private static partial Regex OpenPattern();

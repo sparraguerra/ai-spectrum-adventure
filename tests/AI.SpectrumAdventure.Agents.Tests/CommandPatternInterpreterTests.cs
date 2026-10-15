@@ -46,6 +46,19 @@ public class CommandPatternInterpreterTests
         intent.Target.Should().Be(expectedItem);
     }
 
+    [Theory]
+    [InlineData("drop key")]
+    [InlineData("leave the bridge key")]
+    public void TryInterpret_DropSynonyms_ResolveToDropWithCanonicalItem(string input)
+    {
+        var intent = CommandPatternInterpreter.TryInterpret(input);
+
+        Enum.TryParse<IntentAction>("Drop", out var dropAction).Should().BeTrue();
+        intent.Should().NotBeNull();
+        intent!.Action.Should().Be(dropAction);
+        intent.Target.Should().Be("bridge-key");
+    }
+
     [Fact]
     public void TryInterpret_AuthoredItemName_ResolvesToStableItemId()
     {

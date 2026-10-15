@@ -26,7 +26,7 @@ public static class AdventureOrchestrator
     /// ambiguous (Edge Case: Ambiguous Action) rather than simply unknown.</summary>
     private static readonly HashSet<IntentAction> TargetRequiredActions =
     [
-        IntentAction.Go, IntentAction.Examine, IntentAction.Take, IntentAction.Open, IntentAction.Use, IntentAction.TalkTo,
+        IntentAction.Go, IntentAction.Examine, IntentAction.Take, IntentAction.Drop, IntentAction.Open, IntentAction.Use, IntentAction.TalkTo,
     ];
 
     public static ActionResult ProcessAction(Game game, ParsedIntent intent)
@@ -63,7 +63,7 @@ public static class AdventureOrchestrator
         }
 
         var sceneChanged = validation.ProposedEvents.Any(e =>
-            e is PlayerMovedEvent or PuzzleSolvedEvent or LocationDiscoveredEvent or ObjectStateChangedEvent or ItemTakenEvent);
+            e is PlayerMovedEvent or PuzzleSolvedEvent or LocationDiscoveredEvent or ObjectStateChangedEvent or ItemTakenEvent or ItemDroppedEvent);
 
         var successResult = BuildResult(game, success: true, RulesFailureReason.None, BuildSuccessNarrative(intent, game), sceneChanged, puzzleEvaluation);
         activity?.SetTag("game.action_success", successResult.Success);
@@ -146,6 +146,7 @@ public static class AdventureOrchestrator
             IntentAction.Look => GetLocationDescriptionQuery.Execute(game),
             IntentAction.Go => GetLocationDescriptionQuery.Execute(game),
             IntentAction.Take => $"You take it. {GetLocationDescriptionQuery.Execute(game)}",
+            IntentAction.Drop => $"You leave it here. {GetLocationDescriptionQuery.Execute(game)}",
             IntentAction.Examine => game.GetItem(new ItemId(intent.Target!)).Description,
             IntentAction.Open => game.GetItem(new ItemId(intent.Target!)).Description,
             IntentAction.Use when game.Puzzle.Solved => "With a heavy groan, the tower door swings open.",
@@ -161,6 +162,7 @@ public static class AdventureOrchestrator
             IntentAction.Go => "Which direction do you want to go?",
             IntentAction.Examine => "What do you want to examine?",
             IntentAction.Take => "What do you want to take?",
+            IntentAction.Drop => "What do you want to drop?",
             IntentAction.Open => "What do you want to open?",
             IntentAction.Use => "What do you want to use?",
             IntentAction.TalkTo => "Who do you want to talk to?",

@@ -8,6 +8,7 @@ public enum IntentAction
     Examine,
     Go,
     Take,
+    Drop,
     Open,
     Use,
     TalkTo,

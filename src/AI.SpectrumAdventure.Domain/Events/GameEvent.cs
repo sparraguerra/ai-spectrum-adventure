@@ -7,6 +7,7 @@ public enum GameEventKind
 {
     PlayerMoved,
     ItemTaken,
+    ItemDropped,
     ItemUsed,
     ObjectStateChanged,
     DoorOpened,
@@ -23,6 +24,9 @@ public sealed record PlayerMovedEvent(Guid Id, DateTimeOffset OccurredAt, Locati
 
 public sealed record ItemTakenEvent(Guid Id, DateTimeOffset OccurredAt, ItemId ItemId, LocationId LocationId)
     : GameEvent(Id, OccurredAt, GameEventKind.ItemTaken);
+
+public sealed record ItemDroppedEvent(Guid Id, DateTimeOffset OccurredAt, ItemId ItemId, LocationId LocationId)
+    : GameEvent(Id, OccurredAt, GameEventKind.ItemDropped);
 
 public sealed record ItemUsedEvent(Guid Id, DateTimeOffset OccurredAt, ItemId ItemId, ItemId? TargetId)
     : GameEvent(Id, OccurredAt, GameEventKind.ItemUsed);

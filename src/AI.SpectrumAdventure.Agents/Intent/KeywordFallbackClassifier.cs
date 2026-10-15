@@ -14,6 +14,7 @@ internal static class KeywordFallbackClassifier
     [
         (["examine", "inspect", "look at", "check out", "study"], IntentAction.Examine),
         (["take", "grab", "pick up", "collect", "get the"], IntentAction.Take),
+        (["drop", "leave", "put down"], IntentAction.Drop),
         (["open", "pry open", "force open"], IntentAction.Open),
         (["talk", "speak", "ask", "converse", "chat"], IntentAction.TalkTo),
         (["use", "unlock", "insert", "apply"], IntentAction.Use),

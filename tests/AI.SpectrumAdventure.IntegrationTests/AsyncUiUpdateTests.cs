@@ -1,6 +1,7 @@
 namespace AI.SpectrumAdventure.IntegrationTests;
 
 using AI.SpectrumAdventure.Agents.ImagePipeline;
+using AI.SpectrumAdventure.Agents.Intent;
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Application.Orchestration;
 using AI.SpectrumAdventure.Contracts;
@@ -108,6 +109,39 @@ public sealed class AsyncUiUpdateTests
         afterPickup!.Scene.SceneStateKey.Should().Contain("objects:");
         afterPickup.Scene.SceneStateKey.Should().NotBe(beforePickup.Scene.SceneStateKey);
         afterPickup.Scene.Objects.Should().NotContain("Rusted Bridge Key");
+    }
+
+    [Fact]
+    public async Task DroppingInventoryItem_RefreshesNarrativeAndEnqueuesSceneWithDroppedItem()
+    {
+        var game = AdventureWorldFactory.CreateNewGame(new GameId(Guid.NewGuid()), DateTimeOffset.UtcNow);
+        game.Apply(new PlayerMovedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, AdventureWorldFactory.ForestEntrance, AdventureWorldFactory.DarkForest));
+        game.Apply(new PlayerMovedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, AdventureWorldFactory.DarkForest, AdventureWorldFactory.OldBridge));
+        AdventureOrchestrator.ProcessAction(game, new ParsedIntent(IntentAction.Take, AdventureWorldFactory.BridgeKey.Value, new Dictionary<string, string>(), 1, "take bridge key"));
+        var dropIntent = CommandPatternInterpreter.TryInterpret("leave the bridge key");
+
+        Enum.TryParse<IntentAction>("Drop", out var dropAction).Should().BeTrue();
+        dropIntent.Should().NotBeNull();
+        dropIntent!.Action.Should().Be(dropAction);
+        var dropped = AdventureOrchestrator.ProcessAction(game, dropIntent);
+
+        dropped.Success.Should().BeTrue();
+        dropped.SceneChanged.Should().BeTrue();
+        dropped.Narrative.Should().Contain("Rusted Bridge Key");
+        game.Player.Inventory.Contains(AdventureWorldFactory.BridgeKey).Should().BeFalse();
+        game.CurrentLocation.ObjectIds.Should().Contain(AdventureWorldFactory.BridgeKey);
+
+        var queue = new ImageGenerationQueue();
+        await VisualSceneOrchestrator.AttachVisualAsync(
+            game,
+            dropped,
+            new StubVisualArtDirector(),
+            queue,
+            new EmptyVisualAssetRepository());
+
+        queue.Reader.TryRead(out var refreshedScene).Should().BeTrue();
+        refreshedScene!.Scene.Objects.Should().Contain("Rusted Bridge Key");
+        refreshedScene.Scene.SceneStateKey.Should().Contain("objects:bridge-key");
     }
 
     [Fact]

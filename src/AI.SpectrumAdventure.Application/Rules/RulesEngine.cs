@@ -20,6 +20,7 @@ public static class RulesEngine
             IntentAction.Examine when intent.Target is not null => ObjectRules.Validate(new ItemId(intent.Target), game),
             IntentAction.Go when intent.Target is not null => MovementRules.Validate(intent.Target, game),
             IntentAction.Take when intent.Target is not null => InventoryRules.ValidateTake(new ItemId(intent.Target), game),
+            IntentAction.Drop when intent.Target is not null => InventoryRules.ValidateDrop(new ItemId(intent.Target), game),
             IntentAction.Open when intent.Target is not null => ObjectRules.Validate(new ItemId(intent.Target), game),
             IntentAction.Use when intent.Target is not null => ItemUsageRules.ValidateUse(new ItemId(intent.Target), ParseUseTarget(intent), game),
             IntentAction.TalkTo when intent.Target is not null => NpcPresenceRules.ValidateTalkTo(new NpcId(intent.Target), game),

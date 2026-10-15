@@ -19,6 +19,11 @@ public static class GameEventSnapshotMapper
             ["item"] = e.ItemId.Value,
             ["location"] = e.LocationId.Value,
         }),
+        ItemDroppedEvent e => new(e.Id, e.OccurredAt, nameof(GameEventKind.ItemDropped), new()
+        {
+            ["item"] = e.ItemId.Value,
+            ["location"] = e.LocationId.Value,
+        }),
         ItemUsedEvent e => new(e.Id, e.OccurredAt, nameof(GameEventKind.ItemUsed), BuildItemUsedPayload(e)),
         ObjectStateChangedEvent e => new(e.Id, e.OccurredAt, nameof(GameEventKind.ObjectStateChanged), new()
         {
@@ -50,6 +55,8 @@ public static class GameEventSnapshotMapper
             GameEventKind.PlayerMoved => new PlayerMovedEvent(
                 snapshot.Id, snapshot.OccurredAt, new LocationId(snapshot.Payload["from"]), new LocationId(snapshot.Payload["to"])),
             GameEventKind.ItemTaken => new ItemTakenEvent(
+                snapshot.Id, snapshot.OccurredAt, new ItemId(snapshot.Payload["item"]), new LocationId(snapshot.Payload["location"])),
+            GameEventKind.ItemDropped => new ItemDroppedEvent(
                 snapshot.Id, snapshot.OccurredAt, new ItemId(snapshot.Payload["item"]), new LocationId(snapshot.Payload["location"])),
             GameEventKind.ItemUsed => new ItemUsedEvent(
                 snapshot.Id, snapshot.OccurredAt, new ItemId(snapshot.Payload["item"]),
