@@ -1,5 +1,9 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "dotnet new": true
+        "dotnet new": true,
+        "/^\\.specify/scripts/powershell/check-prerequisites\\.ps1 -Json -PathsOnly$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

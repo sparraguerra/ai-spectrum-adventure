@@ -7,7 +7,7 @@ This guide validates that the MVP works end-to-end. It does not contain implemen
 ## Prerequisites
 
 - .NET 10 SDK installed.
-- Docker (for local PostgreSQL + Azurite blob emulator containers).
+- A running local container runtime supported by .NET Aspire.
 - An Azure AI Foundry / Azure OpenAI deployment (chat + image generation) reachable from local dev, with credentials available via user-secrets (never committed to source control), per constitution Principle XV.
 
 ## Setup
@@ -17,21 +17,16 @@ This guide validates that the MVP works end-to-end. It does not contain implemen
    dotnet restore
    dotnet build
    ```
-2. Start local infrastructure (PostgreSQL + Azurite) via the provided local compose file (to be added under `tasks.md`'s infra tasks).
-3. Configure local secrets for the `AI.SpectrumAdventure.Web` project:
+2. Configure local Azure AI secrets for the `AI.SpectrumAdventure.Web` project when exercising AI-backed narration or images:
    ```powershell
-   dotnet user-secrets set "ConnectionStrings:AdventureDb" "Host=localhost;Database=adventure;Username=postgres;Password=postgres"
    dotnet user-secrets set "AzureAI:Endpoint" "<your-foundry-endpoint>"
    dotnet user-secrets set "AzureAI:ApiKey" "<local-dev-only-key>"
    ```
-4. Apply EF Core migrations:
+3. Start the full local environment:
    ```powershell
-   dotnet ef database update --project src/AI.SpectrumAdventure.Infrastructure --startup-project src/AI.SpectrumAdventure.Web
+   dotnet run --project src/AI.SpectrumAdventure.AppHost
    ```
-5. Run the app:
-   ```powershell
-   dotnet run --project src/AI.SpectrumAdventure.Web
-   ```
+   The AppHost provides PostgreSQL and Azurite connection settings to the web project and applies database migrations at startup. Open the web endpoint from the Aspire dashboard and confirm `/health` succeeds.
 
 ## Automated test suite
 

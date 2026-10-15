@@ -7,11 +7,13 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/AI.SpectrumAdventure.AppHost/AI.SpectrumAdventure.AppHost.csproj" />
     <Project Path="src/AI.SpectrumAdventure.Agents/AI.SpectrumAdventure.Agents.csproj" />
     <Project Path="src/AI.SpectrumAdventure.Application/AI.SpectrumAdventure.Application.csproj" />
     <Project Path="src/AI.SpectrumAdventure.Contracts/AI.SpectrumAdventure.Contracts.csproj" />
     <Project Path="src/AI.SpectrumAdventure.Domain/AI.SpectrumAdventure.Domain.csproj" />
     <Project Path="src/AI.SpectrumAdventure.Infrastructure/AI.SpectrumAdventure.Infrastructure.csproj" />
+    <Project Path="src/AI.SpectrumAdventure.ServiceDefaults/AI.SpectrumAdventure.ServiceDefaults.csproj" />
     <Project Path="src/AI.SpectrumAdventure.Web/AI.SpectrumAdventure.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -20,7 +22,4 @@
     <Project Path="tests/AI.SpectrumAdventure.Domain.Tests/AI.SpectrumAdventure.Domain.Tests.csproj" />
     <Project Path="tests/AI.SpectrumAdventure.IntegrationTests/AI.SpectrumAdventure.IntegrationTests.csproj" />
   </Folder>
-  <Project Path="docker-compose.dcproj">
-    <Build />
-  </Project>
 </Solution>

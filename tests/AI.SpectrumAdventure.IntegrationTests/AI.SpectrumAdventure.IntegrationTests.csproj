@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Testing" Version="13.6.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="FluentAssertions" Version="6.12.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
@@ -22,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\AI.SpectrumAdventure.AppHost\AI.SpectrumAdventure.AppHost.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\AI.SpectrumAdventure.Web\AI.SpectrumAdventure.Web.csproj" />
     <ProjectReference Include="..\..\src\AI.SpectrumAdventure.Application\AI.SpectrumAdventure.Application.csproj" />
     <ProjectReference Include="..\..\src\AI.SpectrumAdventure.Domain\AI.SpectrumAdventure.Domain.csproj" />
