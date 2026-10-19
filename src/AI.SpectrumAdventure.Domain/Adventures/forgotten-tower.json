@@ -2,6 +2,24 @@
   "id": "forgotten-tower",
   "title": "The Forgotten Tower",
   "startingLocationId": "forest-entrance",
+  "targetVocabulary": [
+    {
+      "id": "sign",
+      "synonyms": ["weathered sign"]
+    },
+    {
+      "id": "bridge-key",
+      "synonyms": ["key", "bridge key", "rusted bridge key"]
+    },
+    {
+      "id": "hermit",
+      "synonyms": ["the hermit"]
+    },
+    {
+      "id": "forgotten-tower",
+      "synonyms": ["tower", "forgotten tower"]
+    }
+  ],
   "locations": [
     {
       "id": "forest-entrance",
