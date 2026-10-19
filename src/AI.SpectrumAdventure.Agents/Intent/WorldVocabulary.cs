@@ -3,7 +3,7 @@ namespace AI.SpectrumAdventure.Agents.Intent;
 using System.Text.RegularExpressions;
 
 /// <summary>Shared directions and adventure-provided target synonyms used by both intent parsing paths.</summary>
-internal sealed class WorldVocabulary
+public sealed class WorldVocabulary
 {
     private static readonly Dictionary<string, string> Directions = new(StringComparer.OrdinalIgnoreCase)
     {

@@ -35,7 +35,7 @@ public class EventHistoryConsistencyTests
         game.ApplyRange(events);
 
         game.EventHistory.Should().HaveCount(events.Count);
-        game.EventHistory.Should().HaveCountGreaterOrEqualTo(15);
+        game.EventHistory.Should().HaveCountGreaterThanOrEqualTo(15);
         game.EventHistory.Should().ContainInOrder(snapshotBeforeReplay);
         // The two earliest facts established (discovering Dark Forest, discovering Old Bridge) must still hold.
         game.GetLocation(AdventureWorldFactory.DarkForest).Discovered.Should().BeTrue();

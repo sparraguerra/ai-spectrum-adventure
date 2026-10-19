@@ -15,7 +15,7 @@ public class InvalidInputHandlingTests
     [InlineData("qwertyuiopasdfghjkl")]
     public void Classify_NeverThrows_ForInvalidOrEmptyInput(string input)
     {
-        var act = () => KeywordFallbackClassifier.Classify(input);
+        var act = () => KeywordFallbackClassifier.Classify(input, WorldVocabulary.Empty);
 
         act.Should().NotThrow();
     }
@@ -23,7 +23,7 @@ public class InvalidInputHandlingTests
     [Fact]
     public void Classify_UnparseableInput_ReturnsUnknownAction_NotAnException()
     {
-        var intent = KeywordFallbackClassifier.Classify("qwertyuiopasdfghjkl");
+        var intent = KeywordFallbackClassifier.Classify("qwertyuiopasdfghjkl", WorldVocabulary.Empty);
 
         intent.Action.Should().Be(IntentAction.Unknown);
     }

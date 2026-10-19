@@ -253,7 +253,6 @@ public static class AdventureWorldFactory
         }
 
         var puzzles = GetPuzzleDefinitions(definition);
-        var puzzleIds = puzzles.Select(puzzle => puzzle.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (puzzleIds.Count != puzzles.Count)
         {
             throw new InvalidOperationException("Adventure puzzle identifiers must be unique.");
