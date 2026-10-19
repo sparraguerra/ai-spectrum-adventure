@@ -23,8 +23,8 @@ No ejecutes `scripts/reset-local-state.ps1` durante la sesión salvo que quieras
 3. **Ejecuta un movimiento disponible, por ejemplo `go north`.**
    - Mensaje: muestra el orden: intención, reglas, eventos, estado y sólo después narración.
 
-4. **Ejecuta una acción imposible, por ejemplo `go nowhere` o usa un objeto no poseído.**
-   - Mensaje: no hay mutación; el motor responde con un motivo determinista y una explicación coherente.
+4. **Ejecuta una acción imposible, por ejemplo `go south` desde Forest Entrance o usa un objeto no poseído.**
+   - Mensaje: la ubicación tiene salidas definidas por la aventura; una dirección no declarada no crea una ruta nueva. No hay mutación y el motor responde de forma determinista.
 
 5. **Habla con un NPC.**
    - Mensaje: el agente recibe personalidad y una frontera de conocimiento, no un acceso global al mundo.
@@ -34,13 +34,13 @@ No ejecutes `scripts/reset-local-state.ps1` durante la sesión salvo que quieras
 
 ## Extensión: exploración dinámica
 
-Realiza un desplazamiento hacia una dirección que pueda expandirse desde la localización actual.
+Usa una partida o escenario preparado que sitúe al jugador en una localización sin salidas declaradas y cuya política permita expandirse. En las ubicaciones con salidas creadas por el autor, una dirección no declarada debe rechazarse en vez de generar contenido.
 
 1. Explica que se calcula una clave con semilla, versión, origen, dirección y ordinal.
 2. Muestra que se valida y persiste una nueva estructura antes de pedir enriquecimiento.
 3. Repite la acción o reinicia la pantalla: el mundo recuperado es el persistido, no una nueva invención del modelo.
 
-No prometas una dirección concreta sin comprobar primero la aventura que vayas a usar; el escenario puede tener políticas de expansión distintas.
+No prometas una dirección concreta sin comprobar primero la aventura y la localización preparadas: la expansión requiere tanto una frontera sin salidas autoritativas como una política que la permita.
 
 ## Extensión: editor de aventuras
 

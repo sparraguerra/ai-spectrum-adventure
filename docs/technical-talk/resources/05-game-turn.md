@@ -10,6 +10,7 @@ sequenceDiagram
     participant S as Estado
     participant N as Narrador IA
     P->>I: comando libre
+    Note right of I: vocabulario de la aventura activa
     I-->>E: intención estructurada
     E->>E: valida reglas
     E->>S: persiste eventos y estado
@@ -19,7 +20,7 @@ sequenceDiagram
 
 ## Mensaje oral
 
-"Un turno no es texto que modifica una base de datos. Es una transición de estado: interpretación, validación, eventos y persistencia. La narración ocurre al final, a partir de hechos."
+"Un turno no es texto que modifica una base de datos. El intérprete resuelve las expresiones del jugador con el vocabulario de la aventura y produce una intención; después llegan validación, eventos y persistencia. La narración ocurre al final, a partir de hechos."
 
 ## Referencia ampliada
 

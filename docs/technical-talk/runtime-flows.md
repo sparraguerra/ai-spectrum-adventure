@@ -2,7 +2,7 @@
 
 ## 1. Acción normal del jugador
 
-La UI no entrega el texto directamente a un modelo narrativo. Primero lo interpreta como una intención estructurada y el motor comprueba esa intención contra el estado actual.
+La UI no entrega el texto directamente a un modelo narrativo. Primero lo interpreta como una intención estructurada usando el vocabulario de la aventura activa, y el motor comprueba esa intención contra el estado actual.
 
 ```mermaid
 sequenceDiagram
@@ -16,7 +16,7 @@ sequenceDiagram
     participant Repo as IGameRepository
 
     Player->>UI: "ve al norte"
-    UI->>Intent: InterpretAsync(texto)
+    UI->>Intent: InterpretAsync(texto, vocabulario de la partida)
     Intent-->>UI: ParsedIntent(Go, North)
     UI->>Orchestrator: ProcessActionWithNarrationAsync
     Orchestrator->>Rules: Validate(intent, game)
@@ -39,9 +39,9 @@ sequenceDiagram
 
 La cualidad esencial del orden es que, cuando el narrador recibe contexto, los cambios ya fueron validados y aplicados. Puede describirlos, pero no decidirlos ni revertirlos.
 
-## 2. Exploración de una frontera desconocida
+## 2. Exploración de una frontera desconocida permitida
 
-La exploración procedimental no pide a un modelo que invente un lugar y lo haga verdadero. Genera estructura de forma determinista, valida restricciones, persiste y sólo entonces permite el enriquecimiento narrativo.
+La exploración procedimental no pide a un modelo que invente un lugar y lo haga verdadero. Sólo puede empezar desde una localización sin salidas autoritativas: donde el autor ya definió salidas, cualquier dirección adicional se rechaza. En una frontera permitida, el motor genera estructura de forma determinista, valida restricciones, persiste y sólo entonces permite el enriquecimiento narrativo.
 
 ```mermaid
 sequenceDiagram
@@ -54,8 +54,12 @@ sequenceDiagram
     participant World as World y Game
     participant Enrich as WorldEnrichmentService
 
-    Player->>UI: "ve al este"
+    Player->>UI: "ve al este desde una localización sin salidas declaradas"
     UI->>UseCase: ExecuteAsync(game, East)
+    UseCase->>UseCase: Comprobar que no existen salidas autoritativas
+    alt Hay salidas declaradas
+        UseCase-->>UI: Rechazo determinista: no existe ruta en esa dirección
+    else Frontera expandible
     UseCase->>Repo: Cargar World persistido
     UseCase->>Gen: Derivar GenerationKey(seed, versión, origen, dirección, ordinal)
     Gen-->>UseCase: región, localización, conexión y metadatos
@@ -74,9 +78,10 @@ sequenceDiagram
         end
         UseCase-->>UI: Descripción factual de destino
     end
+    end
 ```
 
-La `GenerationKey` hace idempotente la expansión. Ante competencia, la restricción única de base de datos sustituye un lock local que no funcionaría con varias réplicas.
+La `GenerationKey` hace idempotente una expansión permitida. Ante competencia, la restricción única de base de datos sustituye un lock local que no funcionaría con varias réplicas.
 
 ## 3. Canalización visual asíncrona
 

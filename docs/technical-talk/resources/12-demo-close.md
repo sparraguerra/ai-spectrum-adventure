@@ -3,7 +3,7 @@
 ## Secuencia de demostración
 
 1. Ejecuta un turno con un comando natural y señala que la respuesta procede de un evento validado.
-2. Explora una dirección no conocida y muestra que aparece una localización coherente y persistida.
+2. Desde una ubicación con salidas declaradas, prueba una dirección no definida y muestra el rechazo sin mutación. Reserva la expansión generativa para un escenario preparado sin salidas autoritativas.
 3. Abre el editor, muestra una validación o una propuesta pendiente y publica sólo tras una acción explícita.
 4. Si es posible, provoca un fallback visual o de IA y enseña que el juego sigue funcionando.
 

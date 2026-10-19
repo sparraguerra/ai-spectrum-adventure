@@ -59,7 +59,7 @@ La IA tiene cuatro responsabilidades concretas:
 
 | Componente | Entrada | Salida | Límite de seguridad |
 | --- | --- | --- | --- |
-| Intérprete de intención | Texto libre | `ParsedIntent` | No decide si la acción es posible. |
+| Intérprete de intención | Texto libre y vocabulario de la aventura activa | `ParsedIntent` | Resuelve sinónimos narrativos a identificadores estables; no decide si la acción es posible. |
 | Narrador | Resultado validado y escena factual | `NarrationResult` | No inventa estado ni persiste cambios. |
 | Agente NPC | Personalidad, conocimiento permitido e historial acotado | `NpcResponse` | No revela claves fuera de `KnowledgeBoundary`. |
 | Director visual | Escena persistida y restricciones retro | `VisualSceneSpec` | No es la representación autoritativa de la escena. |
@@ -115,7 +115,8 @@ Aspectos que merece la pena explicar:
 - Un borrador es mutable y tiene revisión para detectar escrituras concurrentes.
 - Una versión publicada es un snapshot inmutable. Las partidas existentes continúan enlazadas a su versión de origen.
 - El mundo tiene una semilla y una versión de generación persistidas. La estructura nueva se deriva de ambas, pero el sistema nunca regenera un mundo persistido para sobrescribir sus eventos.
-- Las expansiones usan una `GenerationKey` única. Dos réplicas que intenten abrir la misma frontera convergen en un único resultado persistido.
+- Las expansiones sólo se intentan desde localizaciones sin salidas autoritativas. Si una localización ya declara salidas, una dirección no declarada se rechaza; no se inventa una ruta paralela a la topología creada por el autor.
+- Las expansiones permitidas usan una `GenerationKey` única. Dos réplicas que intenten abrir la misma frontera convergen en un único resultado persistido.
 - Las actualizaciones que afectan a `World` y `Game` se guardan en una transacción de PostgreSQL.
 
 ## 4. Persistencia y recursos externos

@@ -39,7 +39,7 @@ No hay microservicios por proyecto. Hay límites de código y contratos explíci
 
 ### Mundo procedimental
 
-"Procedimental" no significa aleatorio ni generado por un modelo. Una frontera se deriva de una semilla, una versión de generador, la posición y una dirección. La estructura candidata debe superar restricciones y quedar persistida de forma atómica antes de narrarse.
+"Procedimental" no significa aleatorio ni generado por un modelo. Una frontera sólo puede expandirse donde no existen salidas autoritativas; las direcciones adicionales en una localización creada por el autor se rechazan. Cuando la expansión está permitida, se deriva de una semilla, una versión de generador, la posición y una dirección. La estructura candidata debe superar restricciones y quedar persistida de forma atómica antes de narrarse.
 
 ### Resiliencia
 
@@ -52,6 +52,7 @@ La demostración más convincente no es sólo cuando la IA responde bien. Es ens
 | ¿Por qué no dejar que el LLM dirija todo el juego? | Porque no ofrece garantías de consistencia, reproducibilidad ni control de costes. Lo usamos para lenguaje y presentación, donde aporta más valor. |
 | ¿Por qué no microservicios? | La carga y el equipo no justifican complejidad distribuida. Los puertos y proyectos actuales permiten extraer un worker de imágenes o agentes después. |
 | ¿Cómo evitáis alucinaciones? | Contextos mínimos, contratos estructurados, validación y la regla de que las salidas no pueden mutar estado autoritativo. |
+| ¿Cómo entiende "habla con el farero" o "coge la llave oxidada"? | El intérprete recibe el vocabulario de la aventura activa y resuelve esas expresiones a IDs estables antes de validar las reglas. |
 | ¿Qué ocurre con dos réplicas explorando la misma zona? | La clave de generación única y las transacciones hacen la operación idempotente; se reutiliza el resultado persistido ganador. |
 | ¿Cómo probáis IA? | Se prueban contratos, contexto, límites y fallbacks con dobles de agente; no se requieren llamadas a modelos en CI. |
 | ¿Cómo protegéis secretos? | Configuración externa, user-secrets en local e identidad administrada/secretos de Container Apps en Azure. |
