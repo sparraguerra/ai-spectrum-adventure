@@ -7,6 +7,17 @@ using Xunit;
 
 public class CommandPatternInterpreterTests
 {
+    private static readonly WorldVocabulary HarborVocabulary = new(new Dictionary<string, string>
+    {
+        ["buoy"] = "rusted-buoy",
+        ["rusted buoy"] = "rusted-buoy",
+        ["counterweight"] = "bronze-counterweight",
+        ["bronze counterweight"] = "bronze-counterweight",
+        ["sluice"] = "submerged-sluice",
+        ["ines"] = "ines-the-lighthouse-keeper",
+        ["lighthouse keeper"] = "ines-the-lighthouse-keeper",
+    });
+
     [Theory]
     [InlineData("look")]
     [InlineData("look around")]
@@ -34,12 +45,12 @@ public class CommandPatternInterpreterTests
     }
 
     [Theory]
-    [InlineData("take key", "bridge-key")]
-    [InlineData("grab the bridge key", "bridge-key")]
-    [InlineData("pick up the key", "bridge-key")]
+    [InlineData("take counterweight", "bronze-counterweight")]
+    [InlineData("grab the bronze counterweight", "bronze-counterweight")]
+    [InlineData("pick up the counterweight", "bronze-counterweight")]
     public void TryInterpret_TakeSynonyms_ResolveToTakeWithCanonicalItem(string input, string expectedItem)
     {
-        var intent = CommandPatternInterpreter.TryInterpret(input);
+        var intent = CommandPatternInterpreter.TryInterpret(input, HarborVocabulary);
 
         intent.Should().NotBeNull();
         intent!.Action.Should().Be(IntentAction.Take);
@@ -47,16 +58,16 @@ public class CommandPatternInterpreterTests
     }
 
     [Theory]
-    [InlineData("drop key")]
-    [InlineData("leave the bridge key")]
+    [InlineData("drop counterweight")]
+    [InlineData("leave the bronze counterweight")]
     public void TryInterpret_DropSynonyms_ResolveToDropWithCanonicalItem(string input)
     {
-        var intent = CommandPatternInterpreter.TryInterpret(input);
+        var intent = CommandPatternInterpreter.TryInterpret(input, HarborVocabulary);
 
         Enum.TryParse<IntentAction>("Drop", out var dropAction).Should().BeTrue();
         intent.Should().NotBeNull();
         intent!.Action.Should().Be(dropAction);
-        intent.Target.Should().Be("bridge-key");
+        intent.Target.Should().Be("bronze-counterweight");
     }
 
     [Fact]
@@ -70,35 +81,35 @@ public class CommandPatternInterpreterTests
     }
 
     [Fact]
-    public void TryInterpret_ExamineDoor_ResolvesToExamineTowerEntrance()
+    public void TryInterpret_ExamineSluice_ResolvesToAdventurePuzzleTarget()
     {
-        var intent = CommandPatternInterpreter.TryInterpret("examine door");
+        var intent = CommandPatternInterpreter.TryInterpret("examine the sluice", HarborVocabulary);
 
         intent.Should().NotBeNull();
         intent!.Action.Should().Be(IntentAction.Examine);
-        intent.Target.Should().Be("forgotten-tower-entrance");
+        intent.Target.Should().Be("submerged-sluice");
     }
 
     [Fact]
-    public void TryInterpret_UseKeyOnDoor_ResolvesToUseWithOnParameter()
+    public void TryInterpret_UseCounterweightOnSluice_ResolvesToUseWithOnParameter()
     {
-        var intent = CommandPatternInterpreter.TryInterpret("use key on door");
+        var intent = CommandPatternInterpreter.TryInterpret("use counterweight on sluice", HarborVocabulary);
 
         intent.Should().NotBeNull();
         intent!.Action.Should().Be(IntentAction.Use);
-        intent.Target.Should().Be("bridge-key");
-        intent.Parameters.Should().ContainKey("on").WhoseValue.Should().Be("forgotten-tower-entrance");
+        intent.Target.Should().Be("bronze-counterweight");
+        intent.Parameters.Should().ContainKey("on").WhoseValue.Should().Be("submerged-sluice");
     }
 
     [Fact]
-    public void TryInterpret_QuotedNpcDialogue_ResolvesNpcAndCapturesUtterance()
+    public void TryInterpret_QuotedNpcDialogue_ResolvesAdventureNpcAndCapturesUtterance()
     {
-        var intent = CommandPatternInterpreter.TryInterpret("Talk to the hermit \"I want to go to the tower\"");
+        var intent = CommandPatternInterpreter.TryInterpret("Talk to the lighthouse keeper \"What do you know about the buoy?\"", HarborVocabulary);
 
         intent.Should().NotBeNull();
         intent!.Action.Should().Be(IntentAction.TalkTo);
-        intent.Target.Should().Be("hermit");
-        intent.Parameters.Should().ContainKey("utterance").WhoseValue.Should().Be("I want to go to the tower");
+        intent.Target.Should().Be("ines-the-lighthouse-keeper");
+        intent.Parameters.Should().ContainKey("utterance").WhoseValue.Should().Be("What do you know about the buoy?");
     }
 
     [Fact]

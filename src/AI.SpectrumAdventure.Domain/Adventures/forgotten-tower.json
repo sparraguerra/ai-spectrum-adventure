@@ -35,7 +35,7 @@
     {
       "id": "forgotten-tower",
       "name": "Forgotten Tower",
-      "description": "The Forgotten Tower rises before you, its entrance sealed by a heavy, rusted door. Vines and decades of neglect cling to the ancient stone.",
+      "description": "The Forgotten Tower rises before you, its heavy, rusted door now standing open. Vines and decades of neglect cling to the ancient stone.",
       "exits": [
         { "direction": "East", "to": "dark-forest" }
       ]

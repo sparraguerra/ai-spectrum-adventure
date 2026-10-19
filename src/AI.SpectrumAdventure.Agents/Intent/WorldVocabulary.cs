@@ -2,9 +2,8 @@ namespace AI.SpectrumAdventure.Agents.Intent;
 
 using System.Text.RegularExpressions;
 
-/// <summary>Shared vocabulary (directions, item/NPC/puzzle-target synonyms) used by both the deterministic
-/// pattern matcher and the keyword fallback classifier, so both resolve free text to the same canonical ids.</summary>
-internal static class WorldVocabulary
+/// <summary>Shared directions and adventure-provided target synonyms used by both intent parsing paths.</summary>
+internal sealed class WorldVocabulary
 {
     private static readonly Dictionary<string, string> Directions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -18,31 +17,19 @@ internal static class WorldVocabulary
         ["w"] = "West",
     };
 
-    private static readonly Dictionary<string, string> Targets = new(StringComparer.OrdinalIgnoreCase)
+    private readonly IReadOnlyDictionary<string, string> targets;
+
+    public static WorldVocabulary Empty { get; } = new(new Dictionary<string, string>());
+
+    public WorldVocabulary(IReadOnlyDictionary<string, string> targets)
     {
-        ["sign"] = "sign",
-        ["weathered sign"] = "sign",
-        ["key"] = "bridge-key",
-        ["bridge key"] = "bridge-key",
-        ["rusted key"] = "bridge-key",
-        ["rusted bridge key"] = "bridge-key",
-        ["iron key"] = "bridge-key",
-        ["hermit"] = "hermit",
-        ["the hermit"] = "hermit",
-        ["old hermit"] = "hermit",
-        ["old man"] = "hermit",
-        ["tower"] = "forgotten-tower-entrance",
-        ["forgotten tower"] = "forgotten-tower-entrance",
-        ["door"] = "forgotten-tower-entrance",
-        ["tower door"] = "forgotten-tower-entrance",
-        ["entrance"] = "forgotten-tower-entrance",
-        ["tower entrance"] = "forgotten-tower-entrance",
-    };
+        this.targets = new Dictionary<string, string>(targets, StringComparer.OrdinalIgnoreCase);
+    }
 
     public static bool TryResolveDirection(string text, out string direction) =>
         Directions.TryGetValue(text.Trim(), out direction!);
 
-    public static bool TryResolveTarget(string text, out string targetId)
+    public bool TryResolveTarget(string text, out string targetId)
     {
         var cleaned = text.Trim();
         if (cleaned.StartsWith("the ", StringComparison.OrdinalIgnoreCase))
@@ -50,7 +37,7 @@ internal static class WorldVocabulary
             cleaned = cleaned[4..].Trim();
         }
 
-        if (Targets.TryGetValue(cleaned, out targetId!))
+        if (targets.TryGetValue(cleaned, out targetId!))
         {
             return true;
         }
@@ -61,9 +48,9 @@ internal static class WorldVocabulary
     }
 
     /// <summary>Best-effort scan for any known target phrase appearing anywhere in free-form text (used by the keyword fallback).</summary>
-    public static bool TryFindTargetAnywhere(string lowerText, out string targetId)
+    public bool TryFindTargetAnywhere(string lowerText, out string targetId)
     {
-        foreach (var (phrase, id) in Targets.OrderByDescending(kv => kv.Key.Length))
+        foreach (var (phrase, id) in targets.OrderByDescending(kv => kv.Key.Length))
         {
             if (lowerText.Contains(phrase, StringComparison.OrdinalIgnoreCase))
             {

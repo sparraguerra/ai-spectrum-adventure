@@ -176,7 +176,7 @@ As an adventure author, I want a Markdown manual explaining the complete workflo
 - **FR-020**: The system MUST prevent a playtest from starting when the draft has blocking validation errors.
 - **FR-021**: The system MUST preserve the retro 8-bit identity for author-created locations and optional visual previews.
 - **FR-022**: The system MUST allow editing, saving, validation, publishing, and playtesting to continue when AI proposal, enrichment, image-generation, or preview behavior fails.
-- **FR-023**: The system MUST maintain a Markdown adventure-authoring manual at `docs/adventure-authoring-guide.md` that describes the complete author workflow and is updated when that workflow changes.
+- **FR-023**: The system MUST maintain a Markdown adventure-authoring manual at `docs/adventures/adventure-authoring-guide.md` that describes the complete author workflow and is updated when that workflow changes.
 - **FR-024**: The system MUST remain compatible with the existing modular-monolith deployment and must not require independently deployed editor or AI services.
 - **FR-025**: The system MUST exclude collaborative real-time editing, public marketplaces, author monetization, mod marketplaces, arbitrary player asset uploads, multiplayer playtests, freehand visual map editing, and autonomous AI publication from this feature.
 
@@ -202,7 +202,7 @@ As an adventure author, I want a Markdown manual explaining the complete workflo
 - **SC-007**: A playtest of a valid draft applies the same deterministic outcomes for configured movement and puzzle actions as a game started from a published version.
 - **SC-008**: In failure tests for AI proposals, enrichment, and visual previews, 100% of persisted drafts remain editable and no authoring action is blocked solely by the failed optional behavior.
 - **SC-009**: At least 90% of guided authors can create, validate, publish, and playtest a simple adventure without manual database changes.
-- **SC-010**: An author can follow `docs/adventure-authoring-guide.md` to create, validate, publish, and playtest a simple adventure without developer assistance.
+- **SC-010**: An author can follow `docs/adventures/adventure-authoring-guide.md` to create, validate, publish, and playtest a simple adventure without developer assistance.
 - **SC-011**: For a small adventure draft, at least 95% of save-and-validate operations complete within 2 seconds during a representative authoring test.
 
 ## Assumptions

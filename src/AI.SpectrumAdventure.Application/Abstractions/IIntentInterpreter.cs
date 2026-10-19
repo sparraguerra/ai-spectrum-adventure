@@ -6,5 +6,8 @@ using AI.SpectrumAdventure.Contracts;
 /// Implementations never mutate GameState — only the RulesEngine decides whether the resulting intent is feasible.</summary>
 public interface IIntentInterpreter
 {
-    ValueTask<ParsedIntent> InterpretAsync(string rawInput, CancellationToken cancellationToken = default);
+    ValueTask<ParsedIntent> InterpretAsync(
+        string rawInput,
+        IReadOnlyDictionary<string, string>? targetVocabulary = null,
+        CancellationToken cancellationToken = default);
 }

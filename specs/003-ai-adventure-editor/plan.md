@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add an in-application Adventure Editor to the existing modular monolith. The editor owns mutable `AdventureDraft` records and immutable `AdventureVersion` snapshots. It validates all accepted author changes deterministically before saving and validates complete drafts before publication. AI returns structured `AuthoringProposal` records only; the author explicitly accepts a proposal, after which deterministic validation may apply it to the draft. Playtests create games from validated draft snapshots through the existing game engine. A maintained author-facing manual lives at `docs/adventure-authoring-guide.md`.
+Add an in-application Adventure Editor to the existing modular monolith. The editor owns mutable `AdventureDraft` records and immutable `AdventureVersion` snapshots. It validates all accepted author changes deterministically before saving and validates complete drafts before publication. AI returns structured `AuthoringProposal` records only; the author explicitly accepts a proposal, after which deterministic validation may apply it to the draft. Playtests create games from validated draft snapshots through the existing game engine. A maintained author-facing manual lives at `docs/adventures/adventure-authoring-guide.md`.
 
 ## Technical Context
 
@@ -77,7 +77,7 @@ tests/
 ├── AI.SpectrumAdventure.Agents.Tests/
 └── AI.SpectrumAdventure.IntegrationTests/
 
-docs/adventure-authoring-guide.md
+docs/adventures/adventure-authoring-guide.md
 ```
 
 **Structure Decision**: Extend existing projects by feature namespace. The catalog remains player-facing published content; authoring repositories own draft/version lifecycle. No external API or service extraction is needed.

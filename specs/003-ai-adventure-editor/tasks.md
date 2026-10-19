@@ -180,7 +180,7 @@
 
 **Independent Test**: A new author follows the manual's example to create, validate, publish, and playtest an adventure.
 
-- [X] T047 [US8] Create the author-facing workflow manual with a complete example in `docs/adventure-authoring-guide.md`
+- [X] T047 [US8] Create the author-facing workflow manual with a complete example in `docs/adventures/adventure-authoring-guide.md`
 - [X] T048 [US8] Link the manual from the editor and repository documentation in `src/AI.SpectrumAdventure.Web/Components/Authoring/AdventureEditor.razor` and `README.md`
 - [X] T049 [US8] Verify the manual contains all required workflow sections, its complete example is structurally valid, and the documented create-validate-publish-playtest sequence succeeds in `tests/AI.SpectrumAdventure.IntegrationTests/AdventureAuthoringManualTests.cs`
 

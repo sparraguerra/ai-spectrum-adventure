@@ -17,6 +17,7 @@ public sealed class Game
     private readonly Dictionary<ItemId, GameItem> _items;
     private readonly Dictionary<NpcId, Npc> _npcs;
     private readonly Dictionary<PuzzleId, Puzzle> _puzzles;
+    private readonly Dictionary<string, string> _targetVocabulary;
     private readonly HashSet<string> _worldFlagKeys = [];
     private readonly List<WorldFlag> _worldFlagHistory = [];
     private readonly List<GameEvent> _eventHistory = [];
@@ -35,6 +36,7 @@ public sealed class Game
     public IReadOnlyCollection<Location> Locations => _locations.Values;
     public IReadOnlyCollection<GameItem> Items => _items.Values;
     public IReadOnlyCollection<Npc> Npcs => _npcs.Values;
+    public IReadOnlyDictionary<string, string> TargetVocabulary => _targetVocabulary;
     public IReadOnlySet<string> WorldFlagKeys => _worldFlagKeys;
     public IReadOnlyCollection<WorldFlag> ActiveWorldFlags => _worldFlagHistory;
 
@@ -55,7 +57,8 @@ public sealed class Game
         WorldId? worldId = null,
         PlayerKnowledge? playerKnowledge = null,
         IEnumerable<Puzzle>? puzzles = null,
-        AdventureVersionId? adventureVersionId = null)
+        AdventureVersionId? adventureVersionId = null,
+        IEnumerable<KeyValuePair<string, string>>? targetVocabulary = null)
     {
         Id = id;
         WorldId = worldId;
@@ -71,6 +74,8 @@ public sealed class Game
         _locations = locations.ToDictionary(l => l.Id);
         _items = items.ToDictionary(i => i.Id);
         _npcs = npcs.ToDictionary(n => n.Id);
+        _targetVocabulary = (targetVocabulary ?? [])
+            .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
     }
 
     public Location GetLocation(LocationId id) => _locations[id];
@@ -238,7 +243,8 @@ public sealed class Game
         WorldId?.Value.ToString(),
         PlayerKnowledge.ToSnapshot(),
         [.. Puzzles.Select(ToSnapshot)],
-        AdventureVersionId?.Value);
+        AdventureVersionId?.Value,
+        [.. TargetVocabulary.Select(entry => new TargetVocabularySnapshot(entry.Key, entry.Value))]);
 
     /// <summary>Persistence-boundary import: reconstructs a full Game aggregate from a previously exported snapshot.</summary>
     public static Game FromSnapshot(GameSnapshot snapshot)
@@ -307,7 +313,7 @@ public sealed class Game
         }
 
         WorldId? worldId = Guid.TryParse(snapshot.WorldId, out var worldGuid) ? new WorldId(worldGuid) : null;
-        var game = new Game(new GameId(snapshot.Id), snapshot.CreatedAt, player, locations, items, npcs, puzzle, snapshot.AdventureId ?? AdventureWorldFactory.DefaultAdventureId, worldId, PlayerKnowledge.FromSnapshot(snapshot.PlayerKnowledge), puzzles, snapshot.AdventureVersionId is null ? null : new AdventureVersionId(snapshot.AdventureVersionId.Value));
+        var game = new Game(new GameId(snapshot.Id), snapshot.CreatedAt, player, locations, items, npcs, puzzle, snapshot.AdventureId ?? AdventureWorldFactory.DefaultAdventureId, worldId, PlayerKnowledge.FromSnapshot(snapshot.PlayerKnowledge), puzzles, snapshot.AdventureVersionId is null ? null : new AdventureVersionId(snapshot.AdventureVersionId.Value), snapshot.TargetVocabulary?.Select(entry => new KeyValuePair<string, string>(entry.Phrase, entry.TargetId)));
         game.RehydrateWorldFlagsAndHistory(
             snapshot.WorldFlags.Select(f => new WorldFlag(f.Key, f.SetAt)),
             snapshot.EventHistory.Select(GameEventSnapshotMapper.FromSnapshot),

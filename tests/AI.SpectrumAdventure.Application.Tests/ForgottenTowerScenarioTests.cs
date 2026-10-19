@@ -46,7 +46,9 @@ public class ForgottenTowerScenarioTests
         game.Puzzle.Solved.Should().BeTrue();
 
         // The entrance is now accessible and stays that way.
-        AdventureOrchestrator.ProcessAction(game, Intent(IntentAction.Go, "West")).Success.Should().BeTrue();
+        var enterTower = AdventureOrchestrator.ProcessAction(game, Intent(IntentAction.Go, "West"));
+        enterTower.Success.Should().BeTrue();
         game.Player.CurrentLocationId.Should().Be(AdventureWorldFactory.ForgottenTower);
+        enterTower.Narrative.Should().Contain("door now standing open");
     }
 }

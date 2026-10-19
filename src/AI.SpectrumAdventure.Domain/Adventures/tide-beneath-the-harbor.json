@@ -2,6 +2,24 @@
   "id": "tide-beneath-the-harbor",
   "title": "The Tide Beneath the Harbor",
   "startingLocationId": "stone-pier",
+  "targetVocabulary": [
+    {
+      "id": "rusted-buoy",
+      "synonyms": ["buoy", "rusted buoy"]
+    },
+    {
+      "id": "bronze-counterweight",
+      "synonyms": ["counterweight", "bronze counterweight", "bronze piece", "triangular piece"]
+    },
+    {
+      "id": "submerged-sluice",
+      "synonyms": ["sluice", "submerged sluice", "sluice gate", "triangular slot"]
+    },
+    {
+      "id": "ines-the-lighthouse-keeper",
+      "synonyms": ["ines", "lighthouse keeper", "the lighthouse keeper"]
+    }
+  ],
   "locations": [
     {
       "id": "stone-pier",

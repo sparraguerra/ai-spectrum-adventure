@@ -23,9 +23,12 @@ public sealed record GameSnapshot(
     string? WorldId = null,
     PlayerKnowledgeSnapshot? PlayerKnowledge = null,
     List<PuzzleSnapshot>? Puzzles = null,
-    Guid? AdventureVersionId = null);
+    Guid? AdventureVersionId = null,
+    List<TargetVocabularySnapshot>? TargetVocabulary = null);
 
 public sealed record PlayerSnapshot(string CurrentLocationId, List<string> InventoryItemIds, List<string> KnownClues);
+
+public sealed record TargetVocabularySnapshot(string Phrase, string TargetId);
 
 public sealed record KnowledgeEntrySnapshot(string Id, DateTimeOffset DiscoveredAt);
 

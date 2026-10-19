@@ -45,7 +45,7 @@ The script requires you to type `RESET`; it does not target Azure resources, pro
 
 AI-backed narration and image generation are optional for local topology validation. Configure Azure AI values with user secrets on the web project; never add them to tracked configuration. See [specs/004-aspire-local-orchestration/quickstart.md](specs/004-aspire-local-orchestration/quickstart.md) for the complete Aspire workflow.
 
-For the complete author workflow, including the editor example, validation, publication, version restore, AI proposal boundaries, and playtesting, see [docs/adventure-authoring-guide.md](docs/adventure-authoring-guide.md).
+For the complete author workflow, including the editor example, validation, publication, version restore, AI proposal boundaries, and playtesting, see [docs/adventures/adventure-authoring-guide.md](docs/adventures/adventure-authoring-guide.md).
 
 ### Feature 003 validation and resilience
 

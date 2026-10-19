@@ -13,7 +13,7 @@ public sealed class AdventureAuthoringManualTests
     public async Task ManualContainsCompleteExampleAndDocumentedWorkflowSucceeds()
     {
         var repositoryRoot = FindRepositoryRoot();
-        var manualPath = Path.Combine(repositoryRoot, "docs", "adventure-authoring-guide.md");
+        var manualPath = Path.Combine(repositoryRoot, "docs", "adventures", "adventure-authoring-guide.md");
         var manual = await File.ReadAllTextAsync(manualPath);
 
         foreach (var requiredSection in new[]

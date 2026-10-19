@@ -176,7 +176,8 @@ public static class AdventureWorldFactory
             puzzle,
             definition.Id,
             puzzles: puzzles,
-            adventureVersionId: adventureVersionId);
+            adventureVersionId: adventureVersionId,
+            targetVocabulary: definition.TargetVocabulary.SelectMany(target => target.Synonyms.Append(target.Id).Select(synonym => new KeyValuePair<string, string>(synonym, target.Id))));
     }
 
     private static ItemState ParseItemState(IEnumerable<string> states)
@@ -200,10 +201,21 @@ public static class AdventureWorldFactory
         var locationIds = definition.Locations.Select(location => location.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var itemIds = definition.Items.Select(item => item.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var npcIds = definition.Npcs.Select(npc => npc.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var puzzleIds = GetPuzzleDefinitions(definition).Select(puzzle => puzzle.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var targetIds = itemIds.Concat(npcIds).Concat(puzzleIds).Concat(locationIds).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         if (!locationIds.Contains(definition.StartingLocationId))
         {
             throw new InvalidOperationException($"Starting location '{definition.StartingLocationId}' does not exist.");
+        }
+
+        foreach (var target in definition.TargetVocabulary)
+        {
+            if (!targetIds.Contains(target.Id))
+                throw new InvalidOperationException($"Target vocabulary references unknown target '{target.Id}'.");
+
+            if (target.Synonyms.Any(string.IsNullOrWhiteSpace))
+                throw new InvalidOperationException($"Target vocabulary for '{target.Id}' contains an empty synonym.");
         }
 
         foreach (var location in definition.Locations)
@@ -317,8 +329,15 @@ public static class AdventureWorldFactory
         public List<ItemDefinition> Items { get; init; } = [];
         public List<NpcDefinition> Npcs { get; init; } = [];
         public List<LoreDefinition> Lore { get; init; } = [];
+        public List<TargetVocabularyDefinition> TargetVocabulary { get; init; } = [];
         public PuzzleDefinition Puzzle { get; init; } = new();
         public List<PuzzleDefinition> Puzzles { get; init; } = [];
+    }
+
+    private sealed class TargetVocabularyDefinition
+    {
+        public string Id { get; init; } = "";
+        public List<string> Synonyms { get; init; } = [];
     }
 
     private sealed class LoreDefinition

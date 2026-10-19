@@ -7,8 +7,9 @@ using AI.SpectrumAdventure.Contracts;
 /// (research.md Decision 3). Returns null when no pattern matches, signaling the caller to fall back.</summary>
 public static partial class CommandPatternInterpreter
 {
-    public static ParsedIntent? TryInterpret(string rawInput)
+    public static ParsedIntent? TryInterpret(string rawInput, WorldVocabulary? vocabulary = null)
     {
+        var targetVocabulary = vocabulary ?? WorldVocabulary.Empty;
         var trimmed = rawInput.Trim();
         if (trimmed.Length == 0)
         {
@@ -32,31 +33,31 @@ public static partial class CommandPatternInterpreter
         }
 
         var examineMatch = ExaminePattern().Match(trimmed);
-        if (examineMatch.Success && WorldVocabulary.TryResolveTarget(examineMatch.Groups["target"].Value, out var examineTarget))
+        if (examineMatch.Success && targetVocabulary.TryResolveTarget(examineMatch.Groups["target"].Value, out var examineTarget))
         {
             return Intent(IntentAction.Examine, examineTarget, rawInput);
         }
 
         var takeMatch = TakePattern().Match(trimmed);
-        if (takeMatch.Success && WorldVocabulary.TryResolveTarget(takeMatch.Groups["target"].Value, out var takeTarget))
+        if (takeMatch.Success && targetVocabulary.TryResolveTarget(takeMatch.Groups["target"].Value, out var takeTarget))
         {
             return Intent(IntentAction.Take, takeTarget, rawInput);
         }
 
         var dropMatch = DropPattern().Match(trimmed);
-        if (dropMatch.Success && WorldVocabulary.TryResolveTarget(dropMatch.Groups["target"].Value, out var dropTarget))
+        if (dropMatch.Success && targetVocabulary.TryResolveTarget(dropMatch.Groups["target"].Value, out var dropTarget))
         {
             return Intent(IntentAction.Drop, dropTarget, rawInput);
         }
 
         var openMatch = OpenPattern().Match(trimmed);
-        if (openMatch.Success && WorldVocabulary.TryResolveTarget(openMatch.Groups["target"].Value, out var openTarget))
+        if (openMatch.Success && targetVocabulary.TryResolveTarget(openMatch.Groups["target"].Value, out var openTarget))
         {
             return Intent(IntentAction.Open, openTarget, rawInput);
         }
 
         var dialogueMatch = DialoguePattern().Match(trimmed);
-        if (dialogueMatch.Success && WorldVocabulary.TryResolveTarget(dialogueMatch.Groups["target"].Value, out var dialogueTarget))
+        if (dialogueMatch.Success && targetVocabulary.TryResolveTarget(dialogueMatch.Groups["target"].Value, out var dialogueTarget))
         {
             return Intent(IntentAction.TalkTo, dialogueTarget, rawInput, new Dictionary<string, string>
             {
@@ -65,17 +66,17 @@ public static partial class CommandPatternInterpreter
         }
 
         var talkMatch = TalkPattern().Match(trimmed);
-        if (talkMatch.Success && WorldVocabulary.TryResolveTarget(talkMatch.Groups["target"].Value, out var talkTarget))
+        if (talkMatch.Success && targetVocabulary.TryResolveTarget(talkMatch.Groups["target"].Value, out var talkTarget))
         {
             return Intent(IntentAction.TalkTo, talkTarget, rawInput);
         }
 
         var useMatch = UsePattern().Match(trimmed);
-        if (useMatch.Success && WorldVocabulary.TryResolveTarget(useMatch.Groups["item"].Value, out var useItem))
+        if (useMatch.Success && targetVocabulary.TryResolveTarget(useMatch.Groups["item"].Value, out var useItem))
         {
             var parameters = new Dictionary<string, string>();
             var onGroup = useMatch.Groups["ontarget"];
-            if (onGroup.Success && WorldVocabulary.TryResolveTarget(onGroup.Value, out var onTarget))
+            if (onGroup.Success && targetVocabulary.TryResolveTarget(onGroup.Value, out var onTarget))
             {
                 parameters["on"] = onTarget;
             }

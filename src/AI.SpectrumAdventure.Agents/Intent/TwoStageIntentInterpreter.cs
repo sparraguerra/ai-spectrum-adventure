@@ -7,9 +7,13 @@ using AI.SpectrumAdventure.Contracts;
 /// matcher first; only fall back to the (currently keyword-based, later LLM-backed) classifier on no match.</summary>
 public sealed class TwoStageIntentInterpreter : IIntentInterpreter
 {
-    public ValueTask<ParsedIntent> InterpretAsync(string rawInput, CancellationToken cancellationToken = default)
+    public ValueTask<ParsedIntent> InterpretAsync(
+        string rawInput,
+        IReadOnlyDictionary<string, string>? targetVocabulary = null,
+        CancellationToken cancellationToken = default)
     {
-        var matched = CommandPatternInterpreter.TryInterpret(rawInput);
-        return ValueTask.FromResult(matched ?? KeywordFallbackClassifier.Classify(rawInput));
+        var vocabulary = targetVocabulary is null ? WorldVocabulary.Empty : new WorldVocabulary(targetVocabulary);
+        var matched = CommandPatternInterpreter.TryInterpret(rawInput, vocabulary);
+        return ValueTask.FromResult(matched ?? KeywordFallbackClassifier.Classify(rawInput, vocabulary));
     }
 }

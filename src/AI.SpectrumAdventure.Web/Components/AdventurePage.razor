@@ -212,7 +212,7 @@
 
         try
         {
-            var intent = await IntentInterpreter.InterpretAsync(input);
+            var intent = await IntentInterpreter.InterpretAsync(input, CurrentGame.TargetVocabulary);
             ActionResult result;
 
             if (intent.Action == IntentAction.TalkTo &&

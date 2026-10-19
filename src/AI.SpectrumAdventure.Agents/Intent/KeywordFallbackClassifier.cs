@@ -21,7 +21,7 @@ internal static class KeywordFallbackClassifier
         (["go", "walk", "head", "travel", "move", "run"], IntentAction.Go),
     ];
 
-    public static ParsedIntent Classify(string rawInput)
+    public static ParsedIntent Classify(string rawInput, WorldVocabulary vocabulary)
     {
         var lower = rawInput.ToLowerInvariant();
 
@@ -39,7 +39,7 @@ internal static class KeywordFallbackClassifier
                     : new ParsedIntent(action, null, new Dictionary<string, string>(), 0.3, rawInput);
             }
 
-            if (!WorldVocabulary.TryFindTargetAnywhere(lower, out var targetId))
+            if (!vocabulary.TryFindTargetAnywhere(lower, out var targetId))
             {
                 // Action recognized, but no known target/object phrase found — genuinely ambiguous (Edge Case).
                 return new ParsedIntent(action, null, new Dictionary<string, string>(), 0.3, rawInput);
@@ -49,7 +49,7 @@ internal static class KeywordFallbackClassifier
             if (action == IntentAction.Use && lower.Contains(" on ", StringComparison.Ordinal))
             {
                 var afterOn = lower[(lower.IndexOf(" on ", StringComparison.Ordinal) + 4)..];
-                if (WorldVocabulary.TryFindTargetAnywhere(afterOn, out var onTarget) && onTarget != targetId)
+                if (vocabulary.TryFindTargetAnywhere(afterOn, out var onTarget) && onTarget != targetId)
                 {
                     parameters["on"] = onTarget;
                 }

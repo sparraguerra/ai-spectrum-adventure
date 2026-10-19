@@ -30,7 +30,7 @@ The integration tests use EF Core InMemory and deterministic fakes, so they do n
 5. Publish another version, confirm an existing game retains its source version, then restore the older version to a new draft.
 6. Start a playtest from a valid draft and verify rules/puzzles match player gameplay.
 7. Disable optional AI/preview behavior and verify editing, saving, validation, publishing, and playtesting still work.
-8. Follow `docs/adventure-authoring-guide.md` to complete the workflow without database changes.
+8. Follow `docs/adventures/adventure-authoring-guide.md` to complete the workflow without database changes.
 
 ## Failure and concurrency checks
 
