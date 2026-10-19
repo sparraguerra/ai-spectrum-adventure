@@ -101,6 +101,7 @@ public class AdventureWorldFactoryTests
         game.TargetVocabulary.Should().Contain(new KeyValuePair<string, string>("rusted bridge key", "bridge-key"));
         game.TargetVocabulary.Should().Contain(new KeyValuePair<string, string>("the hermit", "hermit"));
         game.TargetVocabulary.Should().Contain(new KeyValuePair<string, string>("tower", "forgotten-tower"));
+        game.TargetVocabulary.Should().Contain(new KeyValuePair<string, string>("tower door", "forgotten-tower-entrance"));
     }
 
     [Fact]

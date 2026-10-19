@@ -18,6 +18,10 @@
     {
       "id": "forgotten-tower",
       "synonyms": ["tower", "forgotten tower"]
+    },
+    {
+      "id": "forgotten-tower-entrance",
+      "synonyms": ["door", "tower door", "tower entrance"]
     }
   ],
   "locations": [
@@ -81,9 +85,18 @@
       "knowledgeBoundary": ["tower-clue"]
     }
   ],
-  "puzzle": {
-    "id": "forgotten-tower-entrance",
-    "requiredItemId": "bridge-key",
-    "requiredClueKey": "tower-clue"
-  }
+  "puzzles": [
+    {
+      "id": "forgotten-tower-entrance",
+      "solutions": [
+        {
+          "id": "unlock-with-bridge-key-and-tower-clue",
+          "conditions": [
+            { "type": "ItemPossessed", "referenceId": "bridge-key" },
+            { "type": "ClueKnown", "referenceId": "tower-clue" }
+          ]
+        }
+      ]
+    }
+  ]
 }
