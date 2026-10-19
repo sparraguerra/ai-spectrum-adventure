@@ -13,21 +13,18 @@ using FluentAssertions;
 public sealed class UnknownBoundaryExplorationTests
 {
     [Fact]
-    public async Task ExecuteAsync_ExpandsUnknownBoundaryPersistsDestinationAndSupportsRepeatTraversal()
+    public async Task ExecuteAsync_DoesNotExpandUnknownBoundaryWhenCurrentLocationHasDefinedExits()
     {
         await using var context = TestDbContextFactory.Create();
         var game = await new StartGameUseCase(new EfGameRepository(context), null, new EfWorldRepository(context)).ExecuteAsync();
         var useCase = CreateUseCase(context);
+        var initialLocationId = game.Player.CurrentLocationId;
 
         var result = await useCase.ExecuteAsync(game, "South");
 
-        result.Success.Should().BeTrue();
-        var destinationId = game.Player.CurrentLocationId;
-        game.GetLocation(destinationId).BaseDescription.Should().NotBeNullOrWhiteSpace();
-        (await new EfWorldRepository(context).FindAsync(game.WorldId!.Value))!.Locations.Should().Contain(location => location.Id == destinationId);
-
-        game.Apply(new PlayerMovedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, destinationId, AdventureWorldFactory.ForestEntrance));
-        MovementRules.Validate("South", game).Success.Should().BeTrue();
+        result.Success.Should().BeFalse();
+        result.Narrative.Should().Be("There is no path in that direction.");
+        game.Player.CurrentLocationId.Should().Be(initialLocationId);
     }
 
     private static ExploreUnknownDirectionUseCase CreateUseCase(AdventureDbContext context)

@@ -13,21 +13,21 @@ using FluentAssertions;
 public sealed class Feature002EndToEndTests
 {
     [Fact]
-    public async Task DynamicWorld_ExpandsValidBoundaryAndRejectsUnavailableDirection()
+    public async Task DynamicWorld_RejectsUnknownDirectionsWhenTheCurrentLocationHasDefinedExits()
     {
         await using var context = TestDbContextFactory.Create();
         var game = await new StartGameUseCase(new EfGameRepository(context), null, new EfWorldRepository(context)).ExecuteAsync();
         var generator = new WorldGenerator();
         var useCase = new ExploreUnknownDirectionUseCase(new EfWorldRepository(context), generator, generator, generator, new AI.SpectrumAdventure.Application.Worlds.WorldGenerationRules(), new WorldConstraintValidator());
+        var initialLocationCount = game.Locations.Count;
 
         var rejected = await useCase.ExecuteAsync(game, "Sideways");
-        var expanded = await useCase.ExecuteAsync(game, "South");
+        var unavailableDirection = await useCase.ExecuteAsync(game, "South");
         var persisted = await new EfWorldRepository(context).FindAsync(game.WorldId!.Value);
 
         rejected.Success.Should().BeFalse();
-        expanded.Success.Should().BeTrue();
-        persisted!.Locations.Should().Contain(location => location.Id == game.Player.CurrentLocationId);
-        game.PlayerKnowledge.Locations.Should().ContainKey(game.Player.CurrentLocationId.Value);
+        unavailableDirection.Success.Should().BeFalse();
+        persisted!.Locations.Should().HaveCount(initialLocationCount);
     }
 
     [Fact]

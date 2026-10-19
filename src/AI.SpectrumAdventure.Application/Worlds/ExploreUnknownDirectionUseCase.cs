@@ -21,6 +21,13 @@ public sealed class ExploreUnknownDirectionUseCase(
     {
         using var activity = WorldTelemetry.Start("generation");
         activity?.SetTag("world.direction", direction);
+        if (game.CurrentLocation.Exits.Count > 0)
+        {
+            activity?.SetTag("world.generation_success", false);
+            activity?.SetTag("world.failure_reason", "authoritative_exits_defined");
+            return new(false, "There is no path in that direction.");
+        }
+
         if (game.WorldId is not { } worldId || !Enum.TryParse<ConnectionDirection>(direction, true, out var parsedDirection))
         {
             activity?.SetTag("world.generation_success", false);
