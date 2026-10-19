@@ -1,6 +1,6 @@
 <div class="input-group input-group-lg">
     <label class="visually-hidden" for="adventure-command">Adventure command</label>
-    <input id="adventure-command" class="form-control"
+    <input @ref="commandInput" id="adventure-command" class="form-control"
            type="text"
             placeholder='Type a command, e.g. Talk to the hermit "I want to go to the tower"'
            disabled="@Disabled"
@@ -18,6 +18,15 @@
     [Parameter] public EventCallback<string> OnSubmit { get; set; }
 
     private string CurrentInput { get; set; } = string.Empty;
+    private ElementReference commandInput;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!Disabled)
+        {
+            await commandInput.FocusAsync();
+        }
+    }
 
     private async Task SubmitAsync()
     {
