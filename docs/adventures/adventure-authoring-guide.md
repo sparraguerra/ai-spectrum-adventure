@@ -29,6 +29,10 @@ An NPC should have a stable ID, name, personality, goals, relationships, and a k
 
 Define reusable puzzles with one or more solutions. Conditions can reference an item, known clue, world flag, or solved puzzle. Prerequisites must be met before a solution is accepted. The normal gameplay path resolves an accepted puzzle against its declared outcomes and returns only those outcome IDs as consequences; rejected attempts return none. Add follow-on puzzle IDs to `chainLinks` and use a `PuzzleSolved` prerequisite to gate the next challenge. The validator reports missing item, lore key, NPC, location, puzzle, or chain references before publication.
 
+## 5. Add command vocabulary
+
+Use **Command vocabulary** to associate an existing item, NPC, location, or puzzle ID with the names a player is likely to type. Enter the target ID and comma-separated synonyms, then choose **Add or update vocabulary**. Updating the same target ID replaces its synonym list rather than adding a duplicate entry. The runtime also recognizes the stable ID itself. Publication rejects vocabulary that points to an unknown target or contains an empty synonym.
+
 ## Complete example
 
 The following example is a small, valid adventure. In the editor, set **Identifier** to `lantern-trail`, **Title** to `The Lantern Trail`, and **Starting location** to `gate`; paste the JSON into **Definition JSON**, and save it as a new draft.
@@ -38,6 +42,11 @@ The following example is a small, valid adventure. In the editor, set **Identifi
   "id": "lantern-trail",
   "title": "The Lantern Trail",
   "startingLocationId": "gate",
+  "targetVocabulary": [
+    { "id": "brass-key", "synonyms": ["key", "brass key"] },
+    { "id": "mira", "synonyms": ["keeper", "mira the keeper"] },
+    { "id": "lantern-room", "synonyms": ["lantern room"] }
+  ],
   "locations": [
     {
       "id": "gate",

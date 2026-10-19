@@ -9,6 +9,20 @@ public sealed class AuthoringLoreAndPuzzleValidationTests
 {
     private readonly AdventureAuthoringValidator validator = new();
 
+  [Fact]
+  public void DefinitionEditor_UpsertsTargetVocabularyByTargetId()
+  {
+    var json = DraftDefinitionEditor.UpsertTargetVocabulary("{}", new AuthoringTargetVocabulary("bridge-key", ["key", "old key"]));
+
+    json = DraftDefinitionEditor.UpsertTargetVocabulary(json, new AuthoringTargetVocabulary("bridge-key", ["rusted key"]));
+
+    using var document = JsonDocument.Parse(json);
+    var vocabulary = document.RootElement.GetProperty("targetVocabulary");
+    vocabulary.GetArrayLength().Should().Be(1);
+    vocabulary[0].GetProperty("id").GetString().Should().Be("bridge-key");
+    vocabulary[0].GetProperty("synonyms").EnumerateArray().Select(value => value.GetString()).Should().ContainSingle().Which.Should().Be("rusted key");
+  }
+
     [Fact]
     public void Validate_ReportsInvalidLoreAndContradictoryProtectedFacts()
     {

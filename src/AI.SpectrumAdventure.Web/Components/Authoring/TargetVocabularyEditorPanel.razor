@@ -1,0 +1,20 @@
+<section aria-labelledby="target-vocabulary-editor-heading">
+    <h2 id="target-vocabulary-editor-heading">Command vocabulary</h2>
+    <EditForm Model="vocabulary" OnValidSubmit="SaveAsync">
+        <InputText @bind-Value="vocabulary.Id" placeholder="Target id" />
+        <InputText @bind-Value="vocabulary.Synonyms" placeholder="Synonyms, comma separated" />
+        <button type="submit">Add or update vocabulary</button>
+    </EditForm>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string DefinitionJson { get; set; } = "{}";
+    [Parameter] public EventCallback<string> OnDefinitionChanged { get; set; }
+    private VocabularyModel vocabulary = new();
+
+    private Task SaveAsync() => OnDefinitionChanged.InvokeAsync(DraftDefinitionEditor.UpsertTargetVocabulary(DefinitionJson,
+        new AuthoringTargetVocabulary(vocabulary.Id, Values(vocabulary.Synonyms))));
+
+    private static IReadOnlyList<string> Values(string value) => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private sealed class VocabularyModel { public string Id { get; set; } = ""; public string Synonyms { get; set; } = ""; }
+}

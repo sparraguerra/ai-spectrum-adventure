@@ -19,6 +19,8 @@ public sealed record AuthoringExit(string Direction, string To, string? Required
 
 public sealed record AuthoringItem(string Id, string Name, string Description, IReadOnlyList<string>? States = null);
 
+public sealed record AuthoringTargetVocabulary(string Id, IReadOnlyList<string>? Synonyms = null);
+
 public sealed record AuthoringNpc(
     string Id,
     string Name,
@@ -110,6 +112,15 @@ public static class DraftDefinitionEditor
         var items = GetArray(root, "items");
         var value = JsonSerializer.SerializeToNode(item with { States = item.States ?? [] }, Options)!.AsObject();
         ReplaceById(items, value, item.Id);
+        return root.ToJsonString(Options);
+    }
+
+    public static string UpsertTargetVocabulary(string definitionJson, AuthoringTargetVocabulary vocabulary)
+    {
+        var root = Parse(definitionJson);
+        var entries = GetArray(root, "targetVocabulary");
+        var value = JsonSerializer.SerializeToNode(vocabulary with { Synonyms = vocabulary.Synonyms ?? [] }, Options)!.AsObject();
+        ReplaceById(entries, value, vocabulary.Id);
         return root.ToJsonString(Options);
     }
 
