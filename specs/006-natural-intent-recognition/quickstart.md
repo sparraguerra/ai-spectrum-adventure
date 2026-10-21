@@ -41,3 +41,13 @@ dotnet test tests/AI.SpectrumAdventure.IntegrationTests/AI.SpectrumAdventure.Int
 
 Use a labeled set of at least 100 supported utterances and a separate set of at least 100 non-actionable mentions, questions, quotations, hypotheticals, or negations. Record resolved action and target for supported samples and state-change occurrence for non-actionable samples. Confirm at least 95% correct intent-and-target resolution, fewer than 2% unintended actions, and no state changes in ambiguity cases.
 
+## Validation Record
+
+Run on 2026-10-21 in Release:
+
+- Agent tests: 71 passed.
+- Application tests: 82 passed.
+- Intent-focused integration tests: 3 passed.
+- Full integration project: 72 passed, 1 failed, and 1 skipped. The failure was `WorldEnrichmentFailureTests.ExecuteAsync_EnrichmentFailurePreservesCommittedExplorationAndFactualNarration`, outside intent recognition.
+- The evaluation corpus contains 100 supported and 100 non-actionable examples, with no duplicate utterances.
+- Corpus accuracy and false-action rate were not measured. The automated suite uses scripted model responses, and no corpus evaluation runner or live-model results are available; corpus labels alone cannot establish classifier performance.

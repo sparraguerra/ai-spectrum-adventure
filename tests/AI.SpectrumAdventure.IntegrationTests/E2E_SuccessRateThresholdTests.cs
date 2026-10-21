@@ -1,6 +1,7 @@
 namespace AI.SpectrumAdventure.IntegrationTests;
 
 using AI.SpectrumAdventure.Agents.Intent;
+using AI.SpectrumAdventure.Agents.Tests.TestDoubles;
 using AI.SpectrumAdventure.Application.Orchestration;
 using AI.SpectrumAdventure.Contracts;
 using FluentAssertions;
@@ -10,7 +11,18 @@ public sealed class E2E_SuccessRateThresholdTests
     [Fact]
     public async Task CommandCorpus_MeetsClassicAndNaturalLanguageAcceptanceThresholds()
     {
-        var interpreter = new TwoStageIntentInterpreter();
+        const string examineInput = "I carefully inspect the weathered sign.";
+        const string goInput = "I walk north into the trees.";
+        const string talkInput = "I want to speak with the hermit.";
+        const string takeInput = "I grab the bridge key from the boards.";
+        const string useInput = "Please use the bridge key on the tower entrance.";
+        var runner = new FakeAgentRunner()
+            .EnqueueResult(new ParsedIntent(IntentAction.Examine, "sign", new Dictionary<string, string>(), 0.9, examineInput))
+            .EnqueueResult(new ParsedIntent(IntentAction.Go, "North", new Dictionary<string, string>(), 0.9, goInput))
+            .EnqueueResult(new ParsedIntent(IntentAction.TalkTo, "hermit", new Dictionary<string, string>(), 0.9, talkInput))
+            .EnqueueResult(new ParsedIntent(IntentAction.Take, "bridge-key", new Dictionary<string, string>(), 0.9, takeInput))
+            .EnqueueResult(new ParsedIntent(IntentAction.Use, "bridge-key", new Dictionary<string, string> { ["on"] = "forgotten-tower-entrance" }, 0.9, useInput));
+        var interpreter = new TwoStageIntentInterpreter(new IntentInterpreterAgent(runner));
         var classic = new[]
         {
             ("look", IntentAction.Look), ("look around", IntentAction.Look), ("l", IntentAction.Look),
@@ -20,11 +32,11 @@ public sealed class E2E_SuccessRateThresholdTests
         };
         var natural = new[]
         {
-            ("I carefully inspect the weathered sign.", IntentAction.Examine),
-            ("I walk north into the trees.", IntentAction.Go),
-            ("I want to speak with the hermit.", IntentAction.TalkTo),
-            ("I grab the bridge key from the boards.", IntentAction.Take),
-            ("Please use the bridge key on the tower entrance.", IntentAction.Use),
+            (examineInput, IntentAction.Examine),
+            (goInput, IntentAction.Go),
+            (talkInput, IntentAction.TalkTo),
+            (takeInput, IntentAction.Take),
+            (useInput, IntentAction.Use),
         };
 
         var classicCorrect = 0;
@@ -36,8 +48,9 @@ public sealed class E2E_SuccessRateThresholdTests
         var naturalCoherent = 0;
         foreach (var (input, expectedAction) in natural)
         {
-            var intent = await interpreter.InterpretAsync(input);
-            var result = AdventureOrchestrator.ProcessAction(E2ETestSupport.CreateStartedGame(), intent);
+            var game = E2ETestSupport.CreateStartedGame();
+            var intent = await interpreter.InterpretAsync(input, game.TargetVocabulary);
+            var result = AdventureOrchestrator.ProcessAction(game, intent);
             if (intent.Action == expectedAction && !string.IsNullOrWhiteSpace(result.Narrative)) naturalCoherent++;
         }
 

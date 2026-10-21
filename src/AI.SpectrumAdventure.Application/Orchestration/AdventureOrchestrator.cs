@@ -187,7 +187,7 @@ public static class AdventureOrchestrator
             RulesFailureReason.AlreadyInState => "You already have that.",
             RulesFailureReason.PuzzleConditionNotMet => "Nothing happens. Something is still missing.",
             RulesFailureReason.ImpossibleAction => "That doesn't seem possible right now.",
-            RulesFailureReason.UnknownAction => "You're not sure how to do that.",
+            RulesFailureReason.UnknownAction => "I'm not sure what action you mean. Could you clarify or rephrase?",
             _ => "Nothing happens.",
         };
 }

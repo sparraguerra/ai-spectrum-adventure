@@ -3,10 +3,25 @@ namespace AI.SpectrumAdventure.Agents.Intent;
 using System.Text.RegularExpressions;
 using AI.SpectrumAdventure.Contracts;
 
-/// <summary>Deterministic, zero-LLM-cost recognizer for classic adventure-style commands and common synonyms
-/// (research.md Decision 3). Returns null when no pattern matches, signaling the caller to fall back.</summary>
-public static partial class CommandPatternInterpreter
+public static class CommandPatternInterpreter
 {
+    private static readonly RegexOptions PatternOptions = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+    private static readonly Regex Look = ExactPattern(IntentAction.Look);
+    private static readonly Regex Back = ExactPattern(IntentAction.Back);
+    private static readonly Regex Go = new(
+        $@"^(?:{IntentActionVocabulary.ToRegexAlternation(IntentAction.Go)})\s+(?<dir>north|south|east|west|up|down|n|s|e|w)$",
+        PatternOptions);
+    private static readonly Regex BareDirection = new(@"^(north|south|east|west|up|down|n|s|e|w)$", PatternOptions);
+    private static readonly Regex Examine = TargetPattern(IntentAction.Examine, "(?<target>.+)");
+    private static readonly Regex Take = TargetPattern(IntentAction.Take, "(?<target>.+)");
+    private static readonly Regex Drop = TargetPattern(IntentAction.Drop, "(?<target>.+)");
+    private static readonly Regex Open = TargetPattern(IntentAction.Open, "(?<target>.+)");
+    private static readonly Regex Dialogue = TargetPattern(IntentAction.TalkTo, "(?<target>.+?)\\s+\"(?<utterance>.+)\"");
+    private static readonly Regex Talk = TargetPattern(IntentAction.TalkTo, "(?<target>.+)");
+    private static readonly Regex Use = new(
+        $@"^(?:{IntentActionVocabulary.ToRegexAlternation(IntentAction.Use)})\s+(?<item>[^,]+?)(\s+on\s+(?<ontarget>.+))?$",
+        PatternOptions);
+
     public static ParsedIntent? TryInterpret(string rawInput, WorldVocabulary? vocabulary = null)
     {
         var targetVocabulary = vocabulary ?? WorldVocabulary.Empty;
@@ -16,52 +31,52 @@ public static partial class CommandPatternInterpreter
             return null;
         }
 
-        if (LookPattern().IsMatch(trimmed))
+        if (Look.IsMatch(trimmed))
         {
             return Intent(IntentAction.Look, null, rawInput);
         }
 
-        if (BackPattern().IsMatch(trimmed))
+        if (Back.IsMatch(trimmed))
         {
             return Intent(IntentAction.Back, null, rawInput);
         }
 
-        var goMatch = GoPattern().Match(trimmed);
+        var goMatch = Go.Match(trimmed);
         if (goMatch.Success && WorldVocabulary.TryResolveDirection(goMatch.Groups["dir"].Value, out var direction))
         {
             return Intent(IntentAction.Go, direction, rawInput);
         }
 
-        if (BareDirectionPattern().IsMatch(trimmed) && WorldVocabulary.TryResolveDirection(trimmed, out var bareDirection))
+        if (BareDirection.IsMatch(trimmed) && WorldVocabulary.TryResolveDirection(trimmed, out var bareDirection))
         {
             return Intent(IntentAction.Go, bareDirection, rawInput);
         }
 
-        var examineMatch = ExaminePattern().Match(trimmed);
+        var examineMatch = Examine.Match(trimmed);
         if (examineMatch.Success && targetVocabulary.TryResolveTarget(examineMatch.Groups["target"].Value, out var examineTarget))
         {
             return Intent(IntentAction.Examine, examineTarget, rawInput);
         }
 
-        var takeMatch = TakePattern().Match(trimmed);
+        var takeMatch = Take.Match(trimmed);
         if (takeMatch.Success && targetVocabulary.TryResolveTarget(takeMatch.Groups["target"].Value, out var takeTarget))
         {
             return Intent(IntentAction.Take, takeTarget, rawInput);
         }
 
-        var dropMatch = DropPattern().Match(trimmed);
+        var dropMatch = Drop.Match(trimmed);
         if (dropMatch.Success && targetVocabulary.TryResolveTarget(dropMatch.Groups["target"].Value, out var dropTarget))
         {
             return Intent(IntentAction.Drop, dropTarget, rawInput);
         }
 
-        var openMatch = OpenPattern().Match(trimmed);
+        var openMatch = Open.Match(trimmed);
         if (openMatch.Success && targetVocabulary.TryResolveTarget(openMatch.Groups["target"].Value, out var openTarget))
         {
             return Intent(IntentAction.Open, openTarget, rawInput);
         }
 
-        var dialogueMatch = DialoguePattern().Match(trimmed);
+        var dialogueMatch = Dialogue.Match(trimmed);
         if (dialogueMatch.Success && targetVocabulary.TryResolveTarget(dialogueMatch.Groups["target"].Value, out var dialogueTarget))
         {
             return Intent(IntentAction.TalkTo, dialogueTarget, rawInput, new Dictionary<string, string>
@@ -70,13 +85,13 @@ public static partial class CommandPatternInterpreter
             });
         }
 
-        var talkMatch = TalkPattern().Match(trimmed);
+        var talkMatch = Talk.Match(trimmed);
         if (talkMatch.Success && targetVocabulary.TryResolveTarget(talkMatch.Groups["target"].Value, out var talkTarget))
         {
             return Intent(IntentAction.TalkTo, talkTarget, rawInput);
         }
 
-        var useMatch = UsePattern().Match(trimmed);
+        var useMatch = Use.Match(trimmed);
         if (useMatch.Success && targetVocabulary.TryResolveTarget(useMatch.Groups["item"].Value, out var useItem))
         {
             var parameters = new Dictionary<string, string>();
@@ -95,36 +110,9 @@ public static partial class CommandPatternInterpreter
     private static ParsedIntent Intent(IntentAction action, string? target, string rawInput, Dictionary<string, string>? parameters = null) =>
         new(action, target, parameters ?? new Dictionary<string, string>(), Confidence: 1.0, rawInput);
 
-    [GeneratedRegex(@"^(look|look\s+around|l)$", RegexOptions.IgnoreCase)]
-    private static partial Regex LookPattern();
+    private static Regex ExactPattern(IntentAction action) =>
+        new($@"^(?:{IntentActionVocabulary.ToRegexAlternation(action)})$", PatternOptions);
 
-    [GeneratedRegex(@"^back$", RegexOptions.IgnoreCase)]
-    private static partial Regex BackPattern();
-
-    [GeneratedRegex(@"^(go|walk|travel|head)\s+(?<dir>north|south|east|west|up|down|n|s|e|w)$", RegexOptions.IgnoreCase)]
-    private static partial Regex GoPattern();
-
-    [GeneratedRegex(@"^(north|south|east|west|up|down|n|s|e|w)$", RegexOptions.IgnoreCase)]
-    private static partial Regex BareDirectionPattern();
-
-    [GeneratedRegex(@"^(examine|look\s+at|inspect|x)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
-    private static partial Regex ExaminePattern();
-
-    [GeneratedRegex(@"^(take|grab|pick\s+up|get)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
-    private static partial Regex TakePattern();
-
-    [GeneratedRegex(@"^(drop|leave|put\s+down)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
-    private static partial Regex DropPattern();
-
-    [GeneratedRegex(@"^(open)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
-    private static partial Regex OpenPattern();
-
-    [GeneratedRegex(@"^(talk\s+to|talk|speak\s+to|speak\s+with)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
-    private static partial Regex TalkPattern();
-
-    [GeneratedRegex(@"^(talk\s+to|talk|speak\s+to|speak\s+with)\s+(?<target>.+?)\s+""(?<utterance>.+)""$", RegexOptions.IgnoreCase)]
-    private static partial Regex DialoguePattern();
-
-    [GeneratedRegex(@"^(use)\s+(?<item>[^,]+?)(\s+on\s+(?<ontarget>.+))?$", RegexOptions.IgnoreCase)]
-    private static partial Regex UsePattern();
+    private static Regex TargetPattern(IntentAction action, string targetPattern) =>
+        new($@"^(?:{IntentActionVocabulary.ToRegexAlternation(action)})\s+{targetPattern}$", PatternOptions);
 }

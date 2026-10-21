@@ -91,6 +91,7 @@ builder.Services.AddScoped<IAdventureCatalog>(sp =>
         ? new DatabaseAdventureCatalog(null, localAdventureDirectory)
         : new DatabaseAdventureCatalog(sp.GetRequiredService<AdventureDbContext>(), localAdventureDirectory);
 });
+builder.Services.AddSingleton<IIntentInterpreterAgent, IntentInterpreterAgent>();
 builder.Services.AddSingleton<IIntentInterpreter, TwoStageIntentInterpreter>();
 
 // Microsoft Agent Framework: a single Azure OpenAI-backed AIAgent shared by all agent roles (research.md Decisions

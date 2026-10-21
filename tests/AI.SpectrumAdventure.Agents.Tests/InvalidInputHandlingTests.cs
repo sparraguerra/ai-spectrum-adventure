@@ -1,11 +1,10 @@
 namespace AI.SpectrumAdventure.Agents.Tests;
 
 using AI.SpectrumAdventure.Agents.Intent;
+using AI.SpectrumAdventure.Agents.Tests.TestDoubles;
 using AI.SpectrumAdventure.Contracts;
 using FluentAssertions;
-using Xunit;
 
-/// <summary>Confirms free-form input never throws — worst case it resolves to Unknown, per FR-006.</summary>
 public class InvalidInputHandlingTests
 {
     [Theory]
@@ -13,17 +12,24 @@ public class InvalidInputHandlingTests
     [InlineData("   ")]
     [InlineData("!!!???")]
     [InlineData("qwertyuiopasdfghjkl")]
-    public void Classify_NeverThrows_ForInvalidOrEmptyInput(string input)
+    public async Task InterpretAsync_NeverThrows_ForInvalidOrEmptyInput(string input)
     {
-        var act = () => KeywordFallbackClassifier.Classify(input, WorldVocabulary.Empty);
+        var runner = new FakeAgentRunner().EnqueueResult(ParsedIntent.Unknown(input));
+        var interpreter = new TwoStageIntentInterpreter(new IntentInterpreterAgent(runner));
 
-        act.Should().NotThrow();
+        var act = async () => await interpreter.InterpretAsync(input);
+
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]
-    public void Classify_UnparseableInput_ReturnsUnknownAction_NotAnException()
+    public async Task InterpretAsync_UnparseableInputReturnsUnknown()
     {
-        var intent = KeywordFallbackClassifier.Classify("qwertyuiopasdfghjkl", WorldVocabulary.Empty);
+        const string input = "qwertyuiopasdfghjkl";
+        var runner = new FakeAgentRunner().EnqueueResult(ParsedIntent.Unknown(input));
+        var interpreter = new TwoStageIntentInterpreter(new IntentInterpreterAgent(runner));
+
+        var intent = await interpreter.InterpretAsync(input);
 
         intent.Action.Should().Be(IntentAction.Unknown);
     }

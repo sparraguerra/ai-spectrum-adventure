@@ -1,6 +1,7 @@
 namespace AI.SpectrumAdventure.IntegrationTests;
 
 using AI.SpectrumAdventure.Agents.Intent;
+using AI.SpectrumAdventure.Agents.Tests.TestDoubles;
 using AI.SpectrumAdventure.Application.Orchestration;
 using AI.SpectrumAdventure.Contracts;
 using AI.SpectrumAdventure.Domain.Common;
@@ -14,7 +15,7 @@ public class VerticalMovementFlowTests
     public async Task HarborAdventure_RecognizesDownAndUpAndTraversesAuthoredExits()
     {
         var game = AdventureWorldFactory.CreateNewGame(GameId.New(), DateTimeOffset.UtcNow, "tide-beneath-the-harbor");
-        var interpreter = new TwoStageIntentInterpreter();
+        var interpreter = new TwoStageIntentInterpreter(new IntentInterpreterAgent(new FakeAgentRunner()));
 
         foreach (var command in new[] { "go north", "go east", "go north" })
         {

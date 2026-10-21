@@ -10,6 +10,7 @@
 @using AI.SpectrumAdventure.Application.Lore
 @using AI.SpectrumAdventure.Application.Rules
 
+@inject IJSRuntime JS
 @inject IGameRepository GameRepository
 @inject IWorldRepository WorldRepository
 @inject ExploreUnknownDirectionUseCase ExploreUnknownDirectionUseCase
@@ -27,7 +28,12 @@
 
 <div class="@(IsCrtEnabled ? "crt-enabled" : string.Empty)">
     <div class="adventure-shell">
-        <div class="d-flex justify-content-between mb-3">
+        <audio id="adventure-background-audio" src="audio/mystery_16bit_loop_slow.wav" loop preload="none" aria-hidden="true" volume="0.5"></audio>
+        @if (!string.IsNullOrWhiteSpace(MusicStatus))
+        {
+            <div class="alert alert-warning mb-3" role="status">@MusicStatus</div>
+        }
+        <div class="d-flex justify-content-between align-items-center mb-3">
             @if (CurrentGame is not null)
             {
                 <button class="btn btn-primary" type="button" @onclick="ReturnToStart" disabled="@IsProcessing">
@@ -38,10 +44,18 @@
             {
                 <span></span>
             }
-            <label class="crt-toggle">
-                <input type="checkbox" @bind="IsCrtEnabled" />
-                CRT effect
-            </label>
+            <div class="d-flex align-items-center gap-3">
+                @if (CurrentGame is not null)
+                {
+                    <button class="btn btn-primary" type="button" aria-pressed="@IsMusicMuted" @onclick="ToggleMusicAsync" disabled="@IsProcessing">
+                        @(IsMusicPlaying ? (IsMusicMuted ? "Unmute music" : "Mute music") : "Play music")
+                    </button>
+                }
+                <label class="crt-toggle">
+                    <input type="checkbox" @bind="IsCrtEnabled" />
+                    CRT effect
+                </label>
+            </div>
         </div>
 
         @if (CurrentGame is null)
@@ -149,6 +163,9 @@
     private string SelectedAdventureId = AdventureWorldFactory.DefaultAdventureId;
     private bool IsProcessing;
     private bool IsCrtEnabled;
+    private bool IsMusicMuted;
+    private bool IsMusicPlaying;
+    private string? MusicStatus;
 
     protected override async Task OnInitializedAsync()
     {
@@ -156,10 +173,13 @@
         SelectedAdventureId = AvailableAdventures.FirstOrDefault()?.Id ?? AdventureWorldFactory.DefaultAdventureId;
     }
 
-    private void ReturnToStart()
+    private async Task ReturnToStart()
     {
         if (IsProcessing) return;
 
+        await JS.InvokeVoidAsync("adventureAudio.stop");
+        IsMusicPlaying = false;
+        MusicStatus = null;
         CurrentGame = null;
         CurrentWorld = null;
         LastResult = null;
@@ -174,6 +194,11 @@
 
         try
         {
+            IsMusicPlaying = await JS.InvokeAsync<bool>("adventureAudio.start", IsMusicMuted);
+            MusicStatus = IsMusicPlaying
+                ? null
+                : "Your browser blocked background music. Select Play music to try again.";
+
             var game = await new StartGameUseCase(GameRepository, AdventureCatalog, WorldRepository).ExecuteAsync(SelectedAdventureId);
             CurrentGame = game;
             CurrentWorld = game.WorldId is { } worldId ? await WorldRepository.FindAsync(worldId) : null;
@@ -199,6 +224,24 @@
         {
             IsProcessing = false;
         }
+    }
+
+    private async Task ToggleMusicAsync()
+    {
+        if (!IsMusicPlaying)
+        {
+            IsMusicPlaying = await JS.InvokeAsync<bool>("adventureAudio.start", IsMusicMuted);
+            MusicStatus = IsMusicPlaying
+                ? null
+                : "Your browser blocked background music. Select Play music to try again.";
+            return;
+        }
+
+        IsMusicMuted = !IsMusicMuted;
+        IsMusicPlaying = await JS.InvokeAsync<bool>("adventureAudio.setMuted", IsMusicMuted);
+        MusicStatus = IsMusicPlaying
+            ? null
+            : "Your browser blocked background music. Select Play music to try again.";
     }
 
     private async Task HandleSubmitAsync(string input)

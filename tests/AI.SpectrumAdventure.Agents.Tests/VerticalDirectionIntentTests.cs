@@ -1,13 +1,14 @@
 namespace AI.SpectrumAdventure.Agents.Tests;
 
 using AI.SpectrumAdventure.Agents.Intent;
+using AI.SpectrumAdventure.Agents.Tests.TestDoubles;
 using AI.SpectrumAdventure.Contracts;
 using FluentAssertions;
 using Xunit;
 
 public class VerticalDirectionIntentTests
 {
-    private readonly TwoStageIntentInterpreter _interpreter = new();
+    private readonly TwoStageIntentInterpreter _interpreter = new(new IntentInterpreterAgent(new FakeAgentRunner()));
 
     [Theory]
     [InlineData("up", "Up")]

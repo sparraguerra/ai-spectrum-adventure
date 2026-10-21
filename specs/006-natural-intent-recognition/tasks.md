@@ -30,8 +30,8 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 
 **Purpose**: Provide the shared vocabulary and agent contract required by the intent-recognition story.
 
-- [ ] T001 [P] Define the shared supported-action synonym catalog and normalization rules in `src/AI.SpectrumAdventure.Agents/Intent/IntentActionVocabulary.cs`.
-- [ ] T002 [P] Extend `IIntentInterpreterAgent` to accept the current adventure target vocabulary alongside player text in `src/AI.SpectrumAdventure.Application/Abstractions/IIntentInterpreterAgent.cs`.
+- [X] T001 [P] Define the shared supported-action synonym catalog and normalization rules in `src/AI.SpectrumAdventure.Agents/Intent/IntentActionVocabulary.cs`.
+- [X] T002 [P] Extend `IIntentInterpreterAgent` to accept the current adventure target vocabulary alongside player text in `src/AI.SpectrumAdventure.Application/Abstractions/IIntentInterpreterAgent.cs`.
 
 **Checkpoint**: The shared action vocabulary and AI-agent boundary are defined; user-story work can proceed.
 
@@ -47,19 +47,19 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 
 > Write the focused tests first and confirm they fail for the missing behavior before implementing it.
 
-- [ ] T003 [P] [US3] Add model-classifier unit tests for supported intent, `Unknown`, invalid action/target output, and safe model-failure fallback in `tests/AI.SpectrumAdventure.Agents.Tests/IntentInterpreterAgentTests.cs`.
-- [ ] T004 [P] [US3] Update interpreter tests for synonym variants, deterministic-command precedence, natural-language fallback, cancellation, and no-match behavior in `tests/AI.SpectrumAdventure.Agents.Tests/TwoStageIntentInterpreterTests.cs`.
-- [ ] T005 [P] [US3] Add application tests proving unknown and ambiguous intents return clear clarification feedback without changing game state in `tests/AI.SpectrumAdventure.Application.Tests/AmbiguousActionTests.cs`.
+- [X] T003 [P] [US3] Add model-classifier unit tests for supported intent, `Unknown`, invalid action/target output, and safe model-failure fallback in `tests/AI.SpectrumAdventure.Agents.Tests/IntentInterpreterAgentTests.cs`.
+- [X] T004 [P] [US3] Update interpreter tests for synonym variants, deterministic-command precedence, natural-language fallback, cancellation, and no-match behavior in `tests/AI.SpectrumAdventure.Agents.Tests/TwoStageIntentInterpreterTests.cs`.
+- [X] T005 [P] [US3] Add application tests proving unknown and ambiguous intents return clear clarification feedback without changing game state in `tests/AI.SpectrumAdventure.Application.Tests/AmbiguousActionTests.cs`.
 
 ### Implementation for User Story 3
 
-- [ ] T006 [P] [US3] Implement the structured intent-classification agent, including supported-action guidance, adventure target context, output validation, telemetry, and `Unknown` fallback, in `src/AI.SpectrumAdventure.Agents/Intent/IntentInterpreterAgent.cs`.
-- [ ] T007 [P] [US3] Expand deterministic command patterns to use the shared action-synonym catalog while preserving existing classic command behavior in `src/AI.SpectrumAdventure.Agents/Intent/CommandPatternInterpreter.cs`.
-- [ ] T008 [US3] Replace keyword-only fallback classification with the injected AI classifier, pass the target vocabulary and cancellation token through, and remove the obsolete fallback implementation in `src/AI.SpectrumAdventure.Agents/Intent/TwoStageIntentInterpreter.cs` and `src/AI.SpectrumAdventure.Agents/Intent/KeywordFallbackClassifier.cs` (depends on T006 and T007).
-- [ ] T009 [US3] Register `IIntentInterpreterAgent` with the existing `IAgentRunner` in `src/AI.SpectrumAdventure.Web/Program.cs` (depends on T006).
-- [ ] T010 [US3] Update unknown-intent feedback to invite the player to clarify or rephrase without applying an action in `src/AI.SpectrumAdventure.Application/Orchestration/AdventureOrchestrator.cs` (depends on T005).
-- [ ] T011 [US3] Add a labeled intent-evaluation corpus with at least 100 supported utterances and 100 non-actionable examples in `tests/AI.SpectrumAdventure.Agents.Tests/TestData/intent-evaluation.json`.
-- [ ] T012 [US3] Add an integration test that composes the intent interpreter with the deterministic gameplay orchestrator and verifies that only rule-accepted intents change state in `tests/AI.SpectrumAdventure.IntegrationTests/IntentRecognitionFlowTests.cs` (depends on T008 and T010).
+- [X] T006 [P] [US3] Implement the structured intent-classification agent, including supported-action guidance, adventure target context, output validation, telemetry, and `Unknown` fallback, in `src/AI.SpectrumAdventure.Agents/Intent/IntentInterpreterAgent.cs`.
+- [X] T007 [P] [US3] Expand deterministic command patterns to use the shared action-synonym catalog while preserving existing classic command behavior in `src/AI.SpectrumAdventure.Agents/Intent/CommandPatternInterpreter.cs`.
+- [X] T008 [US3] Replace keyword-only fallback classification with the injected AI classifier, pass the target vocabulary and cancellation token through, and remove the obsolete fallback implementation in `src/AI.SpectrumAdventure.Agents/Intent/TwoStageIntentInterpreter.cs` and `src/AI.SpectrumAdventure.Agents/Intent/KeywordFallbackClassifier.cs` (depends on T006 and T007).
+- [X] T009 [US3] Register `IIntentInterpreterAgent` with the existing `IAgentRunner` in `src/AI.SpectrumAdventure.Web/Program.cs` (depends on T006).
+- [X] T010 [US3] Update unknown-intent feedback to invite the player to clarify or rephrase without applying an action in `src/AI.SpectrumAdventure.Application/Orchestration/AdventureOrchestrator.cs` (depends on T005).
+- [X] T011 [US3] Add a labeled intent-evaluation corpus with at least 100 supported utterances and 100 non-actionable examples in `tests/AI.SpectrumAdventure.Agents.Tests/TestData/intent-evaluation.json`.
+- [X] T012 [US3] Add an integration test that composes the intent interpreter with the deterministic gameplay orchestrator, verifies only rule-accepted intents change state, and updates direct interpreter fixtures in `tests/AI.SpectrumAdventure.IntegrationTests/IntentRecognitionFlowTests.cs`, `tests/AI.SpectrumAdventure.IntegrationTests/E2E_SuccessRateThresholdTests.cs`, and `tests/AI.SpectrumAdventure.IntegrationTests/VerticalMovementFlowTests.cs` (depends on T008 and T010).
 
 **Checkpoint**: The story is independently testable through the interpreter and gameplay pipeline; classic commands remain deterministic, natural-language input is classified with bounded model output, and unsafe/no-match input does not mutate state.
 
