@@ -24,12 +24,16 @@ public class AmbiguousActionTests
     }
 
     [Fact]
-    public void ProcessAction_UnknownAction_IsNotTreatedAsAmbiguous()
+    public void ProcessAction_UnknownAction_AsksForClarificationWithoutChangingLocation()
     {
         var game = AdventureWorldFactory.CreateNewGame(GameId.New(), DateTimeOffset.UtcNow);
+        var currentLocationId = game.Player.CurrentLocationId;
 
         var result = AdventureOrchestrator.ProcessAction(game, ParsedIntent.Unknown("gibberish"));
 
+        result.Success.Should().BeFalse();
         result.Reason.Should().Be("UnknownAction");
+        result.Narrative.Should().Contain("clarify");
+        game.Player.CurrentLocationId.Should().Be(currentLocationId);
     }
 }

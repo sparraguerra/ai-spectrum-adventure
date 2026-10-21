@@ -12,6 +12,7 @@ public enum IntentAction
     Open,
     Use,
     TalkTo,
+    Back,
     Unknown,
 }
 

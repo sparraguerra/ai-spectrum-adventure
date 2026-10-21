@@ -25,6 +25,7 @@ public sealed class FakeAgentRunner : IAgentRunner
 
     public Task<T> RunAsync<T>(string prompt, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         CallCount++;
         LastPrompt = prompt;
         if (_responses.Count == 0)

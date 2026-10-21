@@ -56,6 +56,36 @@ public class GameSnapshotRoundTripTests
     }
 
     [Fact]
+    public void RoundTrip_AfterBacktracking_PreservesRemainingPreviousLocations()
+    {
+        var original = AdventureWorldFactory.CreateNewGame(GameId.New(), DateTimeOffset.UtcNow);
+        original.Apply(new PlayerMovedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, AdventureWorldFactory.ForestEntrance, AdventureWorldFactory.DarkForest));
+        original.Apply(new PlayerMovedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, AdventureWorldFactory.DarkForest, AdventureWorldFactory.OldBridge));
+        original.Apply(new PlayerBacktrackedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, AdventureWorldFactory.OldBridge, AdventureWorldFactory.DarkForest));
+
+        var rehydrated = Game.FromSnapshot(original.ToSnapshot());
+
+        rehydrated.Player.CurrentLocationId.Should().Be(AdventureWorldFactory.DarkForest);
+        rehydrated.Player.PreviousLocationIds.Should().ContainSingle().Which.Should().Be(AdventureWorldFactory.ForestEntrance);
+    }
+
+    [Fact]
+    public void FromSnapshot_WithoutPreviousLocationField_ReconstructsHistoryFromMovementEvents()
+    {
+        var original = AdventureWorldFactory.CreateNewGame(GameId.New(), DateTimeOffset.UtcNow);
+        original.Apply(new PlayerMovedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow, AdventureWorldFactory.ForestEntrance, AdventureWorldFactory.DarkForest));
+        var snapshot = original.ToSnapshot() with
+        {
+            Player = original.ToSnapshot().Player with { PreviousLocationIds = null },
+        };
+
+        var rehydrated = Game.FromSnapshot(snapshot);
+
+        rehydrated.Player.CurrentLocationId.Should().Be(AdventureWorldFactory.DarkForest);
+        rehydrated.Player.PreviousLocationIds.Should().ContainSingle().Which.Should().Be(AdventureWorldFactory.ForestEntrance);
+    }
+
+    [Fact]
     public void RoundTrip_AfterPuzzleSolved_PreservesSolvedStateAndUnlockedExit()
     {
         var original = AdventureWorldFactory.CreateNewGame(GameId.New(), DateTimeOffset.UtcNow);

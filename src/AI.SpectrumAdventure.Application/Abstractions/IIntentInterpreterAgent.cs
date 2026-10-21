@@ -6,5 +6,8 @@ using AI.SpectrumAdventure.Contracts;
 /// CommandPatternInterpreter finds no match (research.md Decision 3). Never mutates GameState.</summary>
 public interface IIntentInterpreterAgent
 {
-    Task<ParsedIntent> InterpretAsync(string rawInput, CancellationToken cancellationToken = default);
+    Task<ParsedIntent> InterpretAsync(
+        string rawInput,
+        IReadOnlyDictionary<string, string>? targetVocabulary = null,
+        CancellationToken cancellationToken = default);
 }

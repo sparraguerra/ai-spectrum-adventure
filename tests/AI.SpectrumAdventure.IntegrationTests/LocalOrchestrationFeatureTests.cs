@@ -19,7 +19,7 @@ public sealed class LocalOrchestrationFeatureTests : IClassFixture<WebApplicatio
     {
         var appHostSource = ReadWorkspaceFile("src", "AI.SpectrumAdventure.AppHost", "Program.cs");
 
-        appHostSource.Should().Contain("builder.AddPostgres(\"postgres\")");
+        appHostSource.Should().Contain("var postgres = builder.AddPostgres(\"postgres\", password: postgresPassword)");
         appHostSource.Should().Contain(".WithImage(\"postgres\", \"16\")");
         appHostSource.Should().Contain("postgres.AddDatabase(\"AdventureDb\", \"adventure\")");
         appHostSource.Should().Contain("builder.AddAzureStorage(\"storage\")");
@@ -30,6 +30,7 @@ public sealed class LocalOrchestrationFeatureTests : IClassFixture<WebApplicatio
         appHostSource.Should().Contain(".WithReference(visualAssets, \"AzureStorage\")");
         appHostSource.Should().Contain(".WaitFor(adventureDb)");
         appHostSource.Should().Contain(".WaitFor(visualAssets)");
+        appHostSource.Should().Contain(".WithEnvironment(\"AzureStorage__PublicBlobEndpoint\", storage.GetEndpoint(\"blob\"))");
     }
 
     [Fact]

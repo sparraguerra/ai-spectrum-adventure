@@ -14,6 +14,7 @@ public enum RulesFailureReason
     AmbiguousIntent,
     UnknownAction,
     ImpossibleAction,
+    NoPreviousLocation,
 }
 
 /// <summary>The structured outcome of RulesEngine validation (constitution Principle III/IV). A Success result

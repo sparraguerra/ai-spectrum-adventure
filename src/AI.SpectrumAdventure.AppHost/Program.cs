@@ -30,6 +30,7 @@ builder.AddProject<Projects.AI_SpectrumAdventure_Web>("web")
 	.WaitFor(adventureDb)
 	.WaitFor(visualAssets)
 	.WithEnvironment("AzureStorage__AllowPublicBlobAccess", "true")
+	.WithEnvironment("AzureStorage__PublicBlobEndpoint", storage.GetEndpoint("blob"))
 	.WithEnvironment("DataProtection__KeyRingPath", dataProtectionKeyRingPath);
 
 builder.Build().Run();

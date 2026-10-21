@@ -15,6 +15,8 @@ public sealed class WorldVocabulary
         ["e"] = "East",
         ["west"] = "West",
         ["w"] = "West",
+        ["up"] = "Up",
+        ["down"] = "Down",
     };
 
     private readonly IReadOnlyDictionary<string, string> targets;
@@ -31,50 +33,44 @@ public sealed class WorldVocabulary
 
     public bool TryResolveTarget(string text, out string targetId)
     {
-        var cleaned = text.Trim();
-        if (cleaned.StartsWith("the ", StringComparison.OrdinalIgnoreCase))
-        {
-            cleaned = cleaned[4..].Trim();
-        }
-
-        if (targets.TryGetValue(cleaned, out targetId!))
+        if (TryResolveKnownTarget(text, out targetId))
         {
             return true;
         }
 
         // Adventure-authored items use stable ids, so simple names can resolve without a hard-coded vocabulary entry.
+        var cleaned = NormalizeTarget(text);
         targetId = Regex.Replace(cleaned.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
         return targetId.Length > 0;
     }
 
-    /// <summary>Best-effort scan for any known target phrase appearing anywhere in free-form text (used by the keyword fallback).</summary>
-    public bool TryFindTargetAnywhere(string lowerText, out string targetId)
+    public bool TryResolveKnownTarget(string text, out string targetId)
     {
-        foreach (var (phrase, id) in targets.OrderByDescending(kv => kv.Key.Length))
+        var cleaned = NormalizeTarget(text);
+        if (targets.TryGetValue(cleaned, out targetId!))
         {
-            if (lowerText.Contains(phrase, StringComparison.OrdinalIgnoreCase))
-            {
-                targetId = id;
-                return true;
-            }
+            return true;
+        }
+
+        targetId = targets.Values.FirstOrDefault(value => string.Equals(value, cleaned, StringComparison.OrdinalIgnoreCase)) ?? string.Empty;
+        if (targetId.Length > 0)
+        {
+            return true;
         }
 
         targetId = string.Empty;
         return false;
     }
 
-    public static bool TryFindDirectionAnywhere(string lowerText, out string direction)
+    private static string NormalizeTarget(string text)
     {
-        foreach (var (word, canonical) in Directions.OrderByDescending(kv => kv.Key.Length))
+        var cleaned = text.Trim();
+        if (cleaned.StartsWith("the ", StringComparison.OrdinalIgnoreCase))
         {
-            if (System.Text.RegularExpressions.Regex.IsMatch(lowerText, $@"\b{System.Text.RegularExpressions.Regex.Escape(word)}\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-            {
-                direction = canonical;
-                return true;
-            }
+            return cleaned[4..].Trim();
         }
 
-        direction = string.Empty;
-        return false;
+        return cleaned;
     }
+
 }

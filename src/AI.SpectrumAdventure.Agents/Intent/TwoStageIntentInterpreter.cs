@@ -3,17 +3,27 @@ namespace AI.SpectrumAdventure.Agents.Intent;
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Contracts;
 
-/// <summary>The two-stage interpreter research.md Decision 3 describes: try the free, deterministic pattern
-/// matcher first; only fall back to the (currently keyword-based, later LLM-backed) classifier on no match.</summary>
-public sealed class TwoStageIntentInterpreter : IIntentInterpreter
+/// <summary>Try deterministic command patterns first, then use the bounded AI classifier for natural language.</summary>
+public sealed class TwoStageIntentInterpreter(IIntentInterpreterAgent intentInterpreterAgent) : IIntentInterpreter
 {
-    public ValueTask<ParsedIntent> InterpretAsync(
+    public async ValueTask<ParsedIntent> InterpretAsync(
         string rawInput,
         IReadOnlyDictionary<string, string>? targetVocabulary = null,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var vocabulary = targetVocabulary is null ? WorldVocabulary.Empty : new WorldVocabulary(targetVocabulary);
         var matched = CommandPatternInterpreter.TryInterpret(rawInput, vocabulary);
-        return ValueTask.FromResult(matched ?? KeywordFallbackClassifier.Classify(rawInput, vocabulary));
+        if (matched is not null)
+        {
+            return matched;
+        }
+
+        if (string.IsNullOrWhiteSpace(rawInput))
+        {
+            return ParsedIntent.Unknown(rawInput);
+        }
+
+        return await intentInterpreterAgent.InterpretAsync(rawInput, targetVocabulary, cancellationToken);
     }
 }

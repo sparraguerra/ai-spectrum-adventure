@@ -26,7 +26,11 @@ public sealed record GameSnapshot(
     Guid? AdventureVersionId = null,
     List<TargetVocabularySnapshot>? TargetVocabulary = null);
 
-public sealed record PlayerSnapshot(string CurrentLocationId, List<string> InventoryItemIds, List<string> KnownClues);
+public sealed record PlayerSnapshot(
+    string CurrentLocationId,
+    List<string> InventoryItemIds,
+    List<string> KnownClues,
+    List<string>? PreviousLocationIds = null);
 
 public sealed record TargetVocabularySnapshot(string Phrase, string TargetId);
 
