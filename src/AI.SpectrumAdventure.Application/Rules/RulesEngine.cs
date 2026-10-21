@@ -17,6 +17,7 @@ public static class RulesEngine
         var result = intent.Action switch
         {
             IntentAction.Look => RulesValidationResult.Ok(),
+            IntentAction.Back => BackNavigationRules.Validate(game),
             IntentAction.Examine when intent.Target is not null => ObjectRules.Validate(new ItemId(intent.Target), game),
             IntentAction.Go when intent.Target is not null => MovementRules.Validate(intent.Target, game),
             IntentAction.Take when intent.Target is not null => InventoryRules.ValidateTake(new ItemId(intent.Target), game),

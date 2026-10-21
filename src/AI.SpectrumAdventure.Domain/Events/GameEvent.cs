@@ -14,6 +14,7 @@ public enum GameEventKind
     NpcRelationshipChanged,
     PuzzleSolved,
     LocationDiscovered,
+    PlayerBacktracked,
 }
 
 /// <summary>Base type for all controlled, validated world-state changes (spec Key Entity "World Event/Flag" history half).</summary>
@@ -21,6 +22,9 @@ public abstract record GameEvent(Guid Id, DateTimeOffset OccurredAt, GameEventKi
 
 public sealed record PlayerMovedEvent(Guid Id, DateTimeOffset OccurredAt, LocationId FromLocationId, LocationId ToLocationId)
     : GameEvent(Id, OccurredAt, GameEventKind.PlayerMoved);
+
+public sealed record PlayerBacktrackedEvent(Guid Id, DateTimeOffset OccurredAt, LocationId FromLocationId, LocationId ToLocationId)
+    : GameEvent(Id, OccurredAt, GameEventKind.PlayerBacktracked);
 
 public sealed record ItemTakenEvent(Guid Id, DateTimeOffset OccurredAt, ItemId ItemId, LocationId LocationId)
     : GameEvent(Id, OccurredAt, GameEventKind.ItemTaken);

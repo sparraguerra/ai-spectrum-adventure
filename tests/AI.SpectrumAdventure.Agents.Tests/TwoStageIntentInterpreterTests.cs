@@ -26,6 +26,16 @@ public class TwoStageIntentInterpreterTests
     }
 
     [Fact]
+    public async Task InterpretAsync_BackCommand_ReturnsTargetlessBackIntent()
+    {
+        var intent = await _interpreter.InterpretAsync("back");
+
+        intent.Action.Should().Be(IntentAction.Back);
+        intent.Target.Should().BeNull();
+        intent.Confidence.Should().Be(1.0);
+    }
+
+    [Fact]
     public async Task InterpretAsync_NaturalLanguageInspection_FallsBackAndResolvesTheTarget()
     {
         var intent = await _interpreter.InterpretAsync("I carefully inspect the submerged sluice for traps.", _harborVocabulary);

@@ -30,6 +30,7 @@ public sealed class LocalOrchestrationFeatureTests : IClassFixture<WebApplicatio
         appHostSource.Should().Contain(".WithReference(visualAssets, \"AzureStorage\")");
         appHostSource.Should().Contain(".WaitFor(adventureDb)");
         appHostSource.Should().Contain(".WaitFor(visualAssets)");
+        appHostSource.Should().Contain(".WithEnvironment(\"AzureStorage__PublicBlobEndpoint\", storage.GetEndpoint(\"blob\"))");
     }
 
     [Fact]

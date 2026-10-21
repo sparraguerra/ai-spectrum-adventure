@@ -14,6 +14,11 @@ public static class GameEventSnapshotMapper
             ["from"] = e.FromLocationId.Value,
             ["to"] = e.ToLocationId.Value,
         }),
+        PlayerBacktrackedEvent e => new(e.Id, e.OccurredAt, nameof(GameEventKind.PlayerBacktracked), new()
+        {
+            ["from"] = e.FromLocationId.Value,
+            ["to"] = e.ToLocationId.Value,
+        }),
         ItemTakenEvent e => new(e.Id, e.OccurredAt, nameof(GameEventKind.ItemTaken), new()
         {
             ["item"] = e.ItemId.Value,
@@ -53,6 +58,8 @@ public static class GameEventSnapshotMapper
         return kind switch
         {
             GameEventKind.PlayerMoved => new PlayerMovedEvent(
+                snapshot.Id, snapshot.OccurredAt, new LocationId(snapshot.Payload["from"]), new LocationId(snapshot.Payload["to"])),
+            GameEventKind.PlayerBacktracked => new PlayerBacktrackedEvent(
                 snapshot.Id, snapshot.OccurredAt, new LocationId(snapshot.Payload["from"]), new LocationId(snapshot.Payload["to"])),
             GameEventKind.ItemTaken => new ItemTakenEvent(
                 snapshot.Id, snapshot.OccurredAt, new ItemId(snapshot.Payload["item"]), new LocationId(snapshot.Payload["location"])),

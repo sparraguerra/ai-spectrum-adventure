@@ -118,7 +118,12 @@ public sealed class Game
         switch (gameEvent)
         {
             case PlayerMovedEvent e:
+                Player.RecordPreviousLocation(e.FromLocationId);
                 Player.MoveTo(e.ToLocationId);
+                break;
+
+            case PlayerBacktrackedEvent e:
+                Player.BacktrackTo(e.FromLocationId, e.ToLocationId);
                 break;
 
             case ItemTakenEvent e:
@@ -212,7 +217,8 @@ public sealed class Game
         new PlayerSnapshot(
             Player.CurrentLocationId.Value,
             [.. Player.Inventory.Items.Select(i => i.Value)],
-            [.. Player.KnownClues]),
+            [.. Player.KnownClues],
+            [.. Player.PreviousLocationIds.Select(locationId => locationId.Value)]),
         [.. Locations.Select(l => new LocationSnapshot(
             l.Id.Value,
             l.Name,
@@ -312,14 +318,44 @@ public sealed class Game
             player.LearnClue(clue);
         }
 
+        var eventHistory = snapshot.EventHistory.Select(GameEventSnapshotMapper.FromSnapshot).ToList();
+        var previousLocationIds = snapshot.Player.PreviousLocationIds?.Select(id => new LocationId(id))
+            ?? ReconstructPreviousLocations(eventHistory);
+        player.RehydratePreviousLocations(previousLocationIds);
+
         WorldId? worldId = Guid.TryParse(snapshot.WorldId, out var worldGuid) ? new WorldId(worldGuid) : null;
         var game = new Game(new GameId(snapshot.Id), snapshot.CreatedAt, player, locations, items, npcs, puzzle, snapshot.AdventureId ?? AdventureWorldFactory.DefaultAdventureId, worldId, PlayerKnowledge.FromSnapshot(snapshot.PlayerKnowledge), puzzles, snapshot.AdventureVersionId is null ? null : new AdventureVersionId(snapshot.AdventureVersionId.Value), snapshot.TargetVocabulary?.Select(entry => new KeyValuePair<string, string>(entry.Phrase, entry.TargetId)));
         game.RehydrateWorldFlagsAndHistory(
             snapshot.WorldFlags.Select(f => new WorldFlag(f.Key, f.SetAt)),
-            snapshot.EventHistory.Select(GameEventSnapshotMapper.FromSnapshot),
+            eventHistory,
             snapshot.UpdatedAt);
 
         return game;
+    }
+
+    private static IReadOnlyList<LocationId> ReconstructPreviousLocations(IEnumerable<GameEvent> eventHistory)
+    {
+        var previousLocationIds = new List<LocationId>();
+        foreach (var gameEvent in eventHistory)
+        {
+            switch (gameEvent)
+            {
+                case PlayerMovedEvent moved:
+                    previousLocationIds.Add(moved.FromLocationId);
+                    break;
+
+                case PlayerBacktrackedEvent backtracked:
+                    if (previousLocationIds.Count == 0 || previousLocationIds[^1] != backtracked.ToLocationId)
+                    {
+                        throw new InvalidOperationException("Game event history contains an invalid backtracking event.");
+                    }
+
+                    previousLocationIds.RemoveAt(previousLocationIds.Count - 1);
+                    break;
+            }
+        }
+
+        return previousLocationIds;
     }
 
     private static PuzzleSnapshot ToSnapshot(Puzzle puzzle) => new(

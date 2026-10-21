@@ -15,6 +15,8 @@ public sealed class WorldVocabulary
         ["e"] = "East",
         ["west"] = "West",
         ["w"] = "West",
+        ["up"] = "Up",
+        ["down"] = "Down",
     };
 
     private readonly IReadOnlyDictionary<string, string> targets;

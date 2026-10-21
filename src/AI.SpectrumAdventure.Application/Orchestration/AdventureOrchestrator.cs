@@ -12,6 +12,7 @@ using AI.SpectrumAdventure.Domain.Common;
 using AI.SpectrumAdventure.Domain.Events;
 using AI.SpectrumAdventure.Domain.Games;
 using AI.SpectrumAdventure.Domain.Locations;
+using AI.SpectrumAdventure.Domain.Worlds;
 
 /// <summary>
 /// Coordinates the deterministic gameplay pipeline: Intent -> RulesEngine -> Game.Apply -> ActionResult.
@@ -63,7 +64,7 @@ public static class AdventureOrchestrator
         }
 
         var sceneChanged = validation.ProposedEvents.Any(e =>
-            e is PlayerMovedEvent or PuzzleSolvedEvent or LocationDiscoveredEvent or ObjectStateChangedEvent or ItemTakenEvent or ItemDroppedEvent);
+            e is PlayerMovedEvent or PlayerBacktrackedEvent or PuzzleSolvedEvent or LocationDiscoveredEvent or ObjectStateChangedEvent or ItemTakenEvent or ItemDroppedEvent);
 
         var successResult = BuildResult(game, success: true, RulesFailureReason.None, BuildSuccessNarrative(intent, game), sceneChanged, puzzleEvaluation);
         activity?.SetTag("game.action_success", successResult.Success);
@@ -73,7 +74,8 @@ public static class AdventureOrchestrator
 
     public static async Task<ActionResult> ProcessActionAsync(Game game, ParsedIntent intent, ExploreUnknownDirectionUseCase exploreUnknownDirectionUseCase, CancellationToken cancellationToken = default)
     {
-        if (intent.Action != IntentAction.Go || intent.Target is null || MovementRules.Validate(intent.Target, game).Reason != RulesFailureReason.NoSuchExit)
+        if (intent.Action != IntentAction.Go || intent.Target is null || IsVerticalDirection(intent.Target)
+            || MovementRules.Validate(intent.Target, game).Reason != RulesFailureReason.NoSuchExit)
         {
             return ProcessAction(game, intent);
         }
@@ -81,6 +83,10 @@ public static class AdventureOrchestrator
         var exploration = await exploreUnknownDirectionUseCase.ExecuteAsync(game, intent.Target, cancellationToken);
         return BuildResult(game, exploration.Success, exploration.Success ? RulesFailureReason.None : RulesFailureReason.NoSuchExit, exploration.Narrative, exploration.Success);
     }
+
+    private static bool IsVerticalDirection(string direction) =>
+        Enum.TryParse<ConnectionDirection>(direction, ignoreCase: true, out var parsedDirection)
+        && parsedDirection is ConnectionDirection.Up or ConnectionDirection.Down;
 
     public static async Task<IReadOnlyCollection<LoreDiscoveryResult>> DiscoverLoreAsync(Game game, Domain.Worlds.World world, DiscoverLoreUseCase discoverLoreUseCase, IEnumerable<LoreDiscoveryTrigger> triggers, DateTimeOffset discoveredAt, CancellationToken cancellationToken = default) =>
         await discoverLoreUseCase.ExecuteAsync(game, world, triggers, discoveredAt, cancellationToken);
@@ -145,6 +151,7 @@ public static class AdventureOrchestrator
         {
             IntentAction.Look => GetLocationDescriptionQuery.Execute(game),
             IntentAction.Go => GetLocationDescriptionQuery.Execute(game),
+            IntentAction.Back => GetLocationDescriptionQuery.Execute(game),
             IntentAction.Take => $"You take it. {GetLocationDescriptionQuery.Execute(game)}",
             IntentAction.Drop => $"You leave it here. {GetLocationDescriptionQuery.Execute(game)}",
             IntentAction.Examine => game.GetItem(new ItemId(intent.Target!)).Description,
@@ -173,6 +180,7 @@ public static class AdventureOrchestrator
         reason switch
         {
             RulesFailureReason.NoSuchExit => "There is no path in that direction.",
+            RulesFailureReason.NoPreviousLocation => "There is no previous location to return to.",
             RulesFailureReason.ExitConditionNotMet => "Something is blocking your way. It will not budge.",
             RulesFailureReason.TargetNotPresent => "You don't see anything like that here.",
             RulesFailureReason.ItemNotInInventory => "You don't have that.",

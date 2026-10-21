@@ -21,6 +21,11 @@ public static partial class CommandPatternInterpreter
             return Intent(IntentAction.Look, null, rawInput);
         }
 
+        if (BackPattern().IsMatch(trimmed))
+        {
+            return Intent(IntentAction.Back, null, rawInput);
+        }
+
         var goMatch = GoPattern().Match(trimmed);
         if (goMatch.Success && WorldVocabulary.TryResolveDirection(goMatch.Groups["dir"].Value, out var direction))
         {
@@ -93,10 +98,13 @@ public static partial class CommandPatternInterpreter
     [GeneratedRegex(@"^(look|look\s+around|l)$", RegexOptions.IgnoreCase)]
     private static partial Regex LookPattern();
 
-    [GeneratedRegex(@"^(go|walk|travel|head)\s+(?<dir>north|south|east|west|n|s|e|w)$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^back$", RegexOptions.IgnoreCase)]
+    private static partial Regex BackPattern();
+
+    [GeneratedRegex(@"^(go|walk|travel|head)\s+(?<dir>north|south|east|west|up|down|n|s|e|w)$", RegexOptions.IgnoreCase)]
     private static partial Regex GoPattern();
 
-    [GeneratedRegex(@"^(north|south|east|west|n|s|e|w)$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^(north|south|east|west|up|down|n|s|e|w)$", RegexOptions.IgnoreCase)]
     private static partial Regex BareDirectionPattern();
 
     [GeneratedRegex(@"^(examine|look\s+at|inspect|x)\s+(?<target>.+)$", RegexOptions.IgnoreCase)]
