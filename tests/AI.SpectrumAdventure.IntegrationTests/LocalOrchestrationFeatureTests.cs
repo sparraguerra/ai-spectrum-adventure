@@ -19,7 +19,7 @@ public sealed class LocalOrchestrationFeatureTests : IClassFixture<WebApplicatio
     {
         var appHostSource = ReadWorkspaceFile("src", "AI.SpectrumAdventure.AppHost", "Program.cs");
 
-        appHostSource.Should().Contain("builder.AddPostgres(\"postgres\")");
+        appHostSource.Should().Contain("var postgres = builder.AddPostgres(\"postgres\", password: postgresPassword)");
         appHostSource.Should().Contain(".WithImage(\"postgres\", \"16\")");
         appHostSource.Should().Contain("postgres.AddDatabase(\"AdventureDb\", \"adventure\")");
         appHostSource.Should().Contain("builder.AddAzureStorage(\"storage\")");
