@@ -24,7 +24,7 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 
 **Purpose**: Add the Azure Speech SDK dependency to the existing Infrastructure project.
 
-- [ ] T001 [P] Add the Azure AI Speech SDK package reference to `src/AI.SpectrumAdventure.Infrastructure/AI.SpectrumAdventure.Infrastructure.csproj`.
+- [X] T001 [P] Add the Azure AI Speech SDK package reference to `src/AI.SpectrumAdventure.Infrastructure/AI.SpectrumAdventure.Infrastructure.csproj`.
 
 ---
 
@@ -32,7 +32,7 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 
 **Purpose**: Define the application boundary that all narration stories use.
 
-- [ ] T002 Define `ISceneNarrationService` and its transient audio result contract in `src/AI.SpectrumAdventure.Application/Abstractions/ISceneNarrationService.cs`.
+- [X] T002 Define `ISceneNarrationService` and its transient audio result contract in `src/AI.SpectrumAdventure.Application/Abstractions/ISceneNarrationService.cs`.
 
 **Checkpoint**: The application can request audio without depending on Azure Speech SDK types.
 
@@ -46,14 +46,14 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 
 ### Tests for User Story 1
 
-- [ ] T003 [US1] Add deterministic tests for successful synthesis, cache reuse, and cancellation using a fake speech client in `tests/AI.SpectrumAdventure.IntegrationTests/AzureSpeechNarrationServiceTests.cs`.
+- [X] T003 [US1] Add deterministic tests for successful synthesis, cache reuse, and cancellation using a fake speech client in `tests/AI.SpectrumAdventure.IntegrationTests/AzureSpeechNarrationServiceTests.cs`.
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Implement Azure Speech options, a replaceable SDK client boundary, the Azure Speech SDK adapter, and the bounded in-memory `ISceneNarrationService` implementation in `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechOptions.cs`, `src/AI.SpectrumAdventure.Infrastructure/Speech/ISpeechSynthesisClient.cs`, `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechSdkClient.cs`, and `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechNarrationService.cs` (depends on T002).
-- [ ] T005 [US1] Register the Azure Speech options and `ISceneNarrationService` implementation in `src/AI.SpectrumAdventure.Web/Program.cs` using server-side credentials and external configuration (depends on T004).
-- [ ] T006 [US1] Request narration for the initial and updated non-empty `LastResult.Narrative`, cancel obsolete requests, stop playback when returning to the start, and stream generated audio to JavaScript in `src/AI.SpectrumAdventure.Web/Components/AdventurePage.razor` (depends on T005).
-- [ ] T007 [US1] Add browser playback for the narration stream, stop/replacement behavior, and audio URL/resource cleanup to `src/AI.SpectrumAdventure.Web/wwwroot/js/adventure-audio.js` (depends on T006).
+- [X] T004 [US1] Implement Azure Speech options, a replaceable SDK client boundary, the Azure Speech SDK adapter, and the bounded in-memory `ISceneNarrationService` implementation in `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechOptions.cs`, `src/AI.SpectrumAdventure.Infrastructure/Speech/ISpeechSynthesisClient.cs`, `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechSdkClient.cs`, and `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechNarrationService.cs` (depends on T002).
+- [X] T005 [US1] Register the Azure Speech options and `ISceneNarrationService` implementation in `src/AI.SpectrumAdventure.Web/Program.cs` using server-side credentials and external configuration (depends on T004).
+- [X] T006 [US1] Request narration for the initial and updated non-empty `LastResult.Narrative`, cancel obsolete requests, stop playback when returning to the start, and stream generated audio to JavaScript in `src/AI.SpectrumAdventure.Web/Components/AdventurePage.razor` (depends on T005).
+- [X] T007 [US1] Add browser playback for the narration stream, stop/replacement behavior, and audio URL/resource cleanup to `src/AI.SpectrumAdventure.Web/wwwroot/js/adventure-audio.js` (depends on T006).
 
 **Checkpoint**: A player can hear the current visible narrative text, and successive narrations do not overlap.
 
@@ -67,13 +67,13 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 
 ### Tests for User Story 2
 
-- [ ] T008 [US2] Add tests for locale selection, XML-safe SSML text, and configured pitch/rate prosody in `tests/AI.SpectrumAdventure.IntegrationTests/NarrationSsmlBuilderTests.cs`.
+- [X] T008 [US2] Add tests for locale selection, XML-safe SSML text, and configured pitch/rate prosody in `tests/AI.SpectrumAdventure.IntegrationTests/NarrationSsmlBuilderTests.cs`.
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Build locale-aware SSML using a verified neural voice and configurable lower-pitch, slower-rate prosody in `src/AI.SpectrumAdventure.Infrastructure/Speech/NarrationSsmlBuilder.cs` and `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechOptions.cs` (depends on T004 and T008).
-- [ ] T010 [P] [US2] Set the effective background music gain to `0.25` of its browser default and keep narration at foreground gain in `src/AI.SpectrumAdventure.Web/wwwroot/js/adventure-audio.js` (depends on T007).
-- [ ] T011 [US2] Record the selected locale/voice and the measured mix verification steps in `specs/007-scene-voice-narration/quickstart.md` (depends on T009 and T010).
+- [X] T009 [US2] Build locale-aware SSML using a verified neural voice and configurable lower-pitch, slower-rate prosody in `src/AI.SpectrumAdventure.Infrastructure/Speech/NarrationSsmlBuilder.cs` and `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechOptions.cs` (depends on T004 and T008).
+- [X] T010 [P] [US2] Set the effective background music gain to `0.25` of its browser default and keep narration at foreground gain in `src/AI.SpectrumAdventure.Web/wwwroot/js/adventure-audio.js` (depends on T007).
+- [X] T011 [US2] Record the selected locale/voice and the measured mix verification steps in `specs/007-scene-voice-narration/quickstart.md` (depends on T009 and T010).
 
 **Checkpoint**: Narration has the requested delivery, and the music remains clearly subordinate during speech and pauses.
 

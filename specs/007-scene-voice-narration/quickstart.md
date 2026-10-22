@@ -9,12 +9,19 @@
 
 ## Configure local development
 
-Set the Speech resource's region and key in user secrets for the Web project. Do not add credentials to tracked settings or browser code:
+The Web application binds `AzureSpeechTTS` settings. The current default voice configuration is `en-US` / `en-US-GuyNeural`, listed in [Azure Speech language and voice support](https://learn.microsoft.com/azure/ai-services/speech-service/language-support#text-to-speech-voices), with pitch `-10%` and speaking rate `-20%`. These prosody values are starting points; adjust them by listening with the intended scene text. The voice name, locale, pitch, and rate can be overridden in user secrets.
+
+For local development, authenticate with Microsoft Entra (for example, `az login`) and grant the signed-in identity access to synthesize speech. Set the Speech resource endpoint in user secrets if it is not already supplied by local settings:
 
 ```powershell
-dotnet user-secrets set "AzureSpeech:Region" "<speech-resource-region>" --project src/AI.SpectrumAdventure.Web
-dotnet user-secrets set "AzureSpeech:Key" "<speech-resource-key>" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:Endpoint" "<speech-resource-endpoint>" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:Locale" "en-US" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:VoiceName" "en-US-GuyNeural" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:Pitch" "-10%" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:Rate" "-20%" --project src/AI.SpectrumAdventure.Web
 ```
+
+In Azure, use the app's managed identity with the corresponding Speech resource permissions. Do not put resource keys in tracked settings or send credentials to the browser.
 
 ## Run automated tests
 
@@ -37,7 +44,7 @@ dotnet run --project src/AI.SpectrumAdventure.AppHost
 Open the Web endpoint shown by Aspire and use the following scenarios:
 
 1. Start an adventure. Confirm the first visible narrative paragraph is spoken in the matching language with a low-pitched, measured, mysterious delivery.
-2. Confirm the background music is clearly subordinate to speech. Inspect the audio element gains: music is `0.25`, narration is at foreground gain; confirm the measured mix meets the 10 dB target.
+2. Confirm the background music is clearly subordinate to speech. Inspect the music element's `volume` (`0.25`) and the narration element's `volume` (`1.0`). For the measurable check, capture the combined output with a loopback recording, compare the music-only and narration-only RMS levels over representative intervals, and verify that music RMS is at least 10 dB below narration RMS while both are playing. Repeat with a quiet and a loud music passage; the configured 0.25-to-1.0 gain ratio is nominally 12 dB but source mastering can change the measured difference.
 3. Enter a new scene while speech is playing. Confirm the old narration stops and does not overlap the new narrative.
 4. Revisit a scene with the same narrative. Confirm narration plays again and a cache hit avoids another synthesis request when the item is still cached.
 5. Mute music and confirm narration remains audible. Confirm music remains at its reduced gain when unmuted.

@@ -11,6 +11,7 @@
 @using AI.SpectrumAdventure.Application.Rules
 
 @inject IJSRuntime JS
+@inject ILogger<AdventurePage> Logger
 @inject IGameRepository GameRepository
 @inject IWorldRepository WorldRepository
 @inject ExploreUnknownDirectionUseCase ExploreUnknownDirectionUseCase
@@ -23,6 +24,7 @@
 @inject IWorldEnrichmentRepository WorldEnrichmentRepository
 @inject IAdventureCatalog AdventureCatalog
 @inject DiscoverLoreUseCase DiscoverLore
+@inject ISceneNarrationService SceneNarrationService
 
 <PageTitle>Adventure</PageTitle>
 
@@ -32,6 +34,10 @@
         @if (!string.IsNullOrWhiteSpace(MusicStatus))
         {
             <div class="alert alert-warning mb-3" role="status">@MusicStatus</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(NarrationStatus))
+        {
+            <div class="alert alert-info mb-3" role="status">@NarrationStatus</div>
         }
         <div class="d-flex justify-content-between align-items-center mb-3">
             @if (CurrentGame is not null)
@@ -166,6 +172,24 @@
     private bool IsMusicMuted;
     private bool IsMusicPlaying;
     private string? MusicStatus;
+    private string? NarrationStatus;
+    private ActionResult? LastNarrationResult;
+    private CancellationTokenSource? NarrationCancellation;
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (ReferenceEquals(LastResult, LastNarrationResult))
+        {
+            return Task.CompletedTask;
+        }
+
+        LastNarrationResult = LastResult;
+        NarrationCancellation?.Cancel();
+        NarrationCancellation?.Dispose();
+        NarrationCancellation = new CancellationTokenSource();
+        _ = NarrateAsync(LastResult?.Narrative, NarrationCancellation.Token);
+        return Task.CompletedTask;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -177,9 +201,12 @@
     {
         if (IsProcessing) return;
 
+        NarrationCancellation?.Cancel();
+        await JS.InvokeVoidAsync("adventureAudio.stopNarration");
         await JS.InvokeVoidAsync("adventureAudio.stop");
         IsMusicPlaying = false;
         MusicStatus = null;
+        NarrationStatus = null;
         CurrentGame = null;
         CurrentWorld = null;
         LastResult = null;
@@ -310,6 +337,50 @@
         if (CurrentGame is null || CurrentWorld is null) return [];
         var results = await DiscoverLore.ExecuteAsync(CurrentGame, CurrentWorld, triggers, DateTimeOffset.UtcNow);
         return results.Where(result => result.IsNewDiscovery).ToArray();
+    }
+
+    private async Task NarrateAsync(string? text, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("adventureAudio.stopNarration");
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            if (NarrationStatus is not null)
+            {
+                NarrationStatus = null;
+                await InvokeAsync(StateHasChanged);
+            }
+
+            var audio = await SceneNarrationService.SynthesizeAsync(text, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using var stream = new MemoryStream(audio.AudioBytes, writable: false);
+            using var streamReference = new DotNetStreamReference(stream);
+            await JS.InvokeVoidAsync(
+                "adventureAudio.playNarration",
+                cancellationToken,
+                streamReference,
+                audio.ContentType);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (SceneNarrationException exception)
+        {
+            Logger.LogWarning("Scene narration synthesis failed with {ErrorType}.", exception.GetType().Name);
+            NarrationStatus = "Narration is unavailable. You can continue reading the scene.";
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (JSException exception)
+        {
+            Logger.LogWarning("Scene narration playback failed with {ErrorType}.", exception.GetType().Name);
+            NarrationStatus = "Narration could not be played. You can continue reading the scene.";
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
 }
