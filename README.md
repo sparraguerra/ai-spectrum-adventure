@@ -45,6 +45,23 @@ The script requires you to type `RESET`; it does not target Azure resources, pro
 
 AI-backed narration and image generation are optional for local topology validation. Configure Azure AI values with user secrets on the web project; never add them to tracked configuration. See [specs/004-aspire-local-orchestration/quickstart.md](specs/004-aspire-local-orchestration/quickstart.md) for the complete Aspire workflow.
 
+### Azure Speech scene narration
+
+The adventure can narrate each visible scene through Azure Speech. Create an Azure Speech resource and configure the Web project; do not put resource keys in `appsettings.json`, source control, container images, or browser code.
+
+For local development, store the endpoint and key in User Secrets:
+
+```powershell
+dotnet user-secrets set "AzureSpeechTTS:Endpoint" "<speech-resource-endpoint>" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:Key" "<speech-resource-key>" --project src/AI.SpectrumAdventure.Web
+```
+
+The key is optional when using Microsoft Entra authentication. Run `az login`, set `AzureSpeechTTS:Endpoint`, and grant the signed-in identity the **Cognitive Services Speech User** role on the Speech resource. With a key, the endpoint and key are sufficient; a region is only needed when configuring a key without an endpoint.
+
+In Azure, configure `AzureSpeechTTS__Endpoint` and enable a managed identity for the Web app. Assign that identity the **Cognitive Services Speech User** role on the Speech resource; do not configure a long-lived key in the app. Optional voice settings are `AzureSpeechTTS__Locale`, `AzureSpeechTTS__VoiceName`, `AzureSpeechTTS__Pitch`, and `AzureSpeechTTS__Rate`. Defaults are `en-US`, `en-US-GuyNeural`, `-10%`, and `-20%`.
+
+See the [scene narration quickstart](specs/007-scene-voice-narration/quickstart.md) for test commands, audio-mix checks, and playback/failure scenarios.
+
 For the complete author workflow, including the editor example, validation, publication, version restore, AI proposal boundaries, and playtesting, see [docs/adventures/adventure-authoring-guide.md](docs/adventures/adventure-authoring-guide.md).
 
 ### Feature 003 validation and resilience
@@ -72,4 +89,3 @@ dotnet test
 The test suite uses deterministic generators and test doubles; it does not require a live Azure AI endpoint. See [specs/002-dynamic-world-lore/quickstart.md](specs/002-dynamic-world-lore/quickstart.md) for Feature 002 scenarios.
 
 For local dependencies, start `AI.SpectrumAdventure.AppHost` using the Aspire workflow above.
-

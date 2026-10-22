@@ -39,7 +39,7 @@ Only one narration is active per game page. Starting a later narrative cancels p
 
 | Source | Default gain | Behavior |
 |---|---:|---|
-| Background music | `0.25` of the browser audio element's default gain | Remains reduced while music is playing, including narration pauses. |
-| Narration | Foreground gain (`1.0`) | Plays above music; the configured gain difference is nominally about 12 dB. |
+| Background music | `0.25` of the browser audio element's default gain | Temporarily ducks to `0.03` while narration plays; restores to `0.25` when narration ends, fails, or is stopped. |
+| Narration | Foreground gain (`1.0`) | Plays above music; the actual RMS difference is verified against the 10 dB requirement. |
 
 The mix is runtime audio state only. This feature does not persist audio preferences.

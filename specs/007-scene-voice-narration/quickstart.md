@@ -45,13 +45,38 @@ dotnet run --project src/AI.SpectrumAdventure.AppHost
 Open the Web endpoint shown by Aspire and use the following scenarios:
 
 1. Start an adventure. Confirm the first visible narrative paragraph is spoken in the matching language with a low-pitched, measured, mysterious delivery.
-2. Confirm the background music is clearly subordinate to speech. Inspect the music element's `volume` (`0.25`) and the narration element's `volume` (`1.0`). For the measurable check, capture the combined output with a loopback recording, compare the music-only and narration-only RMS levels over representative intervals, and verify that music RMS is at least 10 dB below narration RMS while both are playing. Repeat with a quiet and a loud music passage; the configured 0.25-to-1.0 gain ratio is nominally 12 dB but source mastering can change the measured difference.
+2. Confirm the background music is clearly subordinate to speech. Inspect the music element's `volume` (`0.25` outside narration, `0.03` while narration plays) and the narration element's `volume` (`1.0`). For the measurable check, capture the combined output with a loopback recording or separate Web Audio analyzers, compare music and narration RMS over representative quiet and loud music passages, and verify that music RMS is at least 10 dB below narration RMS while speech is active.
 3. Enter a new scene while speech is playing. Confirm the old narration stops and does not overlap the new narrative.
 4. Revisit a scene with the same narrative. Confirm narration plays again and a cache hit avoids another synthesis request when the item is still cached.
-5. Mute music and confirm narration remains audible. Confirm music remains at its reduced gain when unmuted.
+5. Mute music and confirm narration remains audible. Confirm music remains at its ducked gain if unmuted during narration and returns to `0.25` after narration ends.
 6. Temporarily make Speech credentials unavailable. Confirm the visible narrative and game controls remain usable, the failure is reported without exposing credentials or full text, and later scene narration can be attempted independently.
 7. Start a scene with no narrative text. Confirm no speech plays.
 
 ## Expected outcome
 
-The narrative remains readable and gameplay responsive; each non-empty narrative update is spoken once at a time, the music stays at the reduced default level, and a speech-service or browser-audio failure does not stop the game.
+The narrative remains readable and gameplay responsive; each non-empty narrative update is spoken once at a time, music stays at `0.25` outside speech and is ducked during narration, and a speech-service or browser-audio failure does not stop the game.
+
+## Phase 6 validation record
+
+### Automated checks
+
+- .NET narration tests: 8 passed across `AzureSpeechNarrationServiceTests`, `NarrationSsmlBuilderTests`, and `SceneNarrationFailureTests`.
+- Browser audio tests: 6 passed with `node --test tests\AI.SpectrumAdventure.IntegrationTests\narration-audio.test.js`.
+- JavaScript syntax check: `node --check src\AI.SpectrumAdventure.Web\wwwroot\js\adventure-audio.js` passed.
+
+### Manual checks observed in the local browser
+
+- A visible Forest Entrance narrative triggered a browser audio `play` event; narration playback used volume `1.0`.
+- Background music used `0.25` outside narration and ducked to `0.03` during speech. Muting during narration preserved the ducked gain and did not stop narration; the baseline was restored after narration ended.
+- During a transition from Forest Entrance to Dark Forest, the previous narration was paused and its source released; the new narration started at volume `1.0` while music was ducked.
+- Separate Web Audio analyzers measured a 21.4 dB narration-over-music margin in a two-second overlapping interval. Five additional music-loop positions measured margins from 17.4 to 22.3 dB while narration was active and music volume was `0.03`.
+- A one-shot browser playback rejection displayed the non-blocking failure status while leaving the narrative and command field usable. After restoring normal playback, a later scene narrated successfully.
+
+### Deterministic equivalents for non-interactive scenarios
+
+- Repeated exact text reuses cached output: the service test verifies two identical synthesis requests produce one speech-client call.
+- Speech-service failure and later recovery are covered by fake-client tests; browser playback failure and later narration were also exercised in the running game without changing or exposing credentials.
+- The current playable adventure does not expose an empty-narrative scene. The page's whitespace guard was verified to return before calling the synthesis service.
+- Voice delivery uses the configured `en-US-GuyNeural` voice, pitch `-10%`, and rate `-20%`. The player previously confirmed narration playback works; subjective voice-quality scoring by a larger playtest group remains outside this local technical validation.
+
+These checks use deterministic or browser-level equivalents where the current adventure does not expose a corresponding live scenario. The measured local mix exceeded the specified 10 dB threshold in all sampled speech-active intervals.

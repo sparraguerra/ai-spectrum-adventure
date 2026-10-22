@@ -13,6 +13,18 @@ const audioScript = fs.readFileSync(audioScriptPath, "utf8");
 function createAudioModule(playImplementation = async () => {}) {
     const state = {
         audio: null,
+        musicAudio: {
+            volume: 1,
+            muted: false,
+            paused: true,
+            currentTime: 0,
+            async play() {
+                this.paused = false;
+            },
+            pause() {
+                this.paused = true;
+            }
+        },
         createdUrls: 0,
         revokedUrls: [],
         callbackArguments: null
@@ -55,7 +67,9 @@ function createAudioModule(playImplementation = async () => {}) {
 
     const context = {
         window: {},
-        document: { getElementById: () => null },
+        document: {
+            getElementById: (id) => id === "adventure-background-audio" ? state.musicAudio : null
+        },
         Audio: FakeAudio,
         Blob,
         URL: {
@@ -74,6 +88,43 @@ function createAudioModule(playImplementation = async () => {}) {
     vm.runInNewContext(audioScript, context);
     return { audio: context.window.adventureAudio, state };
 }
+
+test("music stays at its reduced baseline and ducks while narration plays", async () => {
+    const { audio, state } = createAudioModule();
+
+    assert.equal(await audio.start(false), true);
+    assert.equal(state.musicAudio.volume, 0.25);
+
+    const started = await audio.playNarration(
+        { arrayBuffer: async () => new ArrayBuffer(4) },
+        "audio/mpeg",
+        {},
+        0
+    );
+
+    assert.equal(started, true);
+    assert.equal(state.musicAudio.volume, 0.03);
+    state.audio.emit("ended");
+    assert.equal(state.musicAudio.volume, 0.25);
+});
+
+test("unmuting music during narration preserves the ducked gain", async () => {
+    const { audio, state } = createAudioModule();
+    await audio.start(true);
+    await audio.playNarration(
+        { arrayBuffer: async () => new ArrayBuffer(4) },
+        "audio/mpeg",
+        {},
+        0
+    );
+
+    assert.equal(await audio.setMuted(false), true);
+    assert.equal(state.musicAudio.muted, false);
+    assert.equal(state.musicAudio.volume, 0.03);
+
+    audio.stopNarration();
+    assert.equal(state.musicAudio.volume, 0.25);
+});
 
 test("stopNarration cancels a pending audio stream before creating a player", async () => {
     const { audio, state } = createAudioModule();
@@ -126,6 +177,7 @@ test("failed browser playback releases its resources", async () => {
     assert.equal(state.audio.paused, true);
     assert.equal(state.audio.loaded, true);
     assert.deepEqual(state.revokedUrls, ["blob:narration"]);
+    assert.equal(state.musicAudio.volume, 0.25);
 });
 
 test("media errors report playback failure and release audio resources", async () => {
@@ -149,6 +201,7 @@ test("media errors report playback failure and release audio resources", async (
     assert.deepEqual(state.callbackArguments, ["ReportNarrationPlaybackFailureAsync", 42]);
     assert.equal(audioIsReleased(state.audio), true);
     assert.deepEqual(state.revokedUrls, ["blob:narration"]);
+    assert.equal(state.musicAudio.volume, 0.25);
 });
 
 function audioIsReleased(audio) {
