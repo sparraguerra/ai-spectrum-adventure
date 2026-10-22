@@ -1,7 +1,10 @@
 namespace AI.SpectrumAdventure.Application.Tests;
 
+using AI.SpectrumAdventure.Application.Orchestration;
 using AI.SpectrumAdventure.Application.Worlds;
+using AI.SpectrumAdventure.Contracts;
 using AI.SpectrumAdventure.Domain.Common;
+using AI.SpectrumAdventure.Domain.Events;
 using AI.SpectrumAdventure.Domain.Games;
 using AI.SpectrumAdventure.Domain.Worlds;
 using FluentAssertions;
@@ -39,7 +42,27 @@ public sealed class DiscoveredMapTests
 
         var map = GetDiscoveredMapQuery.Execute(game, world);
 
-        map.Connections.Should().ContainSingle(path => path.Id == connection.Id.Value && path.Availability == ConnectionAvailability.Blocked);
+        var path = map.Connections.Should().ContainSingle(path => path.Id == connection.Id.Value && path.Availability == ConnectionAvailability.Blocked).Subject;
+        path.SourceLocationName.Should().Be(world.GetLocation(connection.SourceLocationId).StructuralNameKey.Replace('-', ' '));
+        path.DestinationLocationName.Should().Be(world.GetLocation(connection.DestinationLocationId).StructuralNameKey.Replace('-', ' '));
+    }
+
+    [Fact]
+    public void Execute_IncludesLocationsAndPathsDiscoveredByStandardMovement()
+    {
+        var game = AdventureWorldFactory.CreateNewGame(GameId.New(), DateTimeOffset.UnixEpoch);
+        var world = WorldBootstrapFactory.Create(game, WorldId.New());
+        game.BindWorld(world.Id);
+        game.Apply(new LocationDiscoveredEvent(Guid.NewGuid(), DateTimeOffset.UnixEpoch, game.Player.CurrentLocationId));
+
+        AdventureOrchestrator.ProcessAction(game, new ParsedIntent(IntentAction.Go, "North", new Dictionary<string, string>(), 1.0, "north")).Success.Should().BeTrue();
+        AdventureOrchestrator.ProcessAction(game, new ParsedIntent(IntentAction.Go, "East", new Dictionary<string, string>(), 1.0, "east")).Success.Should().BeTrue();
+
+        var map = GetDiscoveredMapQuery.Execute(game, world);
+
+        map.Locations.Select(location => location.Id).Should().Contain([AdventureWorldFactory.ForestEntrance.Value, AdventureWorldFactory.DarkForest.Value, AdventureWorldFactory.OldBridge.Value]);
+        map.Connections.Should().Contain(path => path.SourceLocationId == AdventureWorldFactory.ForestEntrance.Value && path.DestinationLocationId == AdventureWorldFactory.DarkForest.Value);
+        map.Connections.Should().Contain(path => path.SourceLocationId == AdventureWorldFactory.DarkForest.Value && path.DestinationLocationId == AdventureWorldFactory.OldBridge.Value);
     }
 
     [Fact]

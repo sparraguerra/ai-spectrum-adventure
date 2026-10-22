@@ -8,6 +8,7 @@ using AI.SpectrumAdventure.Agents.Intent;
 using AI.SpectrumAdventure.Agents.VisualArtDirector;
 using AI.SpectrumAdventure.Application.Abstractions;
 using AI.SpectrumAdventure.Application.Authoring;
+using AI.SpectrumAdventure.Application.Games;
 using AI.SpectrumAdventure.Application.Lore;
 using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Infrastructure.Persistence;
@@ -63,6 +64,7 @@ builder.Services.AddDbContext<AdventureDbContext>(options =>
 builder.Services.AddScoped<IGameRepository, EfGameRepository>();
 builder.Services.AddScoped<IAdventureAuthoringRepository, EfAdventureAuthoringRepository>();
 builder.Services.AddSingleton<IAdventureValidator, AdventureAuthoringValidator>();
+builder.Services.AddScoped<StartGameUseCase>();
 builder.Services.AddScoped<DraftUseCases>();
 builder.Services.AddScoped<PublishAdventureUseCase>();
 builder.Services.AddScoped<VersionHistoryUseCases>();

@@ -15,6 +15,7 @@
 @inject ILogger<AdventurePage> Logger
 @inject IGameRepository GameRepository
 @inject IWorldRepository WorldRepository
+@inject StartGameUseCase StartGameUseCase
 @inject ExploreUnknownDirectionUseCase ExploreUnknownDirectionUseCase
 @inject IIntentInterpreter IntentInterpreter
 @inject INarratorAgent NarratorAgent
@@ -155,6 +156,14 @@
                             <InventoryPanel Game="CurrentGame" />
                         </div>
                     </div>
+                    @if (CurrentWorld is not null)
+                    {
+                        <div class="card shadow-sm border-0 mb-4">
+                            <div class="card-body">
+                                <MapPanel Game="CurrentGame" World="CurrentWorld" />
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -230,7 +239,7 @@
                 ? null
                 : "Your browser blocked background music. Select Play music to try again.";
 
-            var game = await new StartGameUseCase(GameRepository, AdventureCatalog, WorldRepository).ExecuteAsync(SelectedAdventureId);
+            var game = await StartGameUseCase.ExecuteAsync(SelectedAdventureId);
             CurrentGame = game;
             CurrentWorld = game.WorldId is { } worldId ? await WorldRepository.FindAsync(worldId) : null;
             RecentlyDiscoveredLore = CurrentWorld is null

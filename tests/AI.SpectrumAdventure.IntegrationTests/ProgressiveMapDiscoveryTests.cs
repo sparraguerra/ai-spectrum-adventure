@@ -28,6 +28,8 @@ public sealed class ProgressiveMapDiscoveryTests
         var reloadedWorld = (await repository.FindAsync(game.WorldId!.Value))!;
         var map = GetDiscoveredMapQuery.Execute(reloadedGame, reloadedWorld);
 
-        map.Connections.Should().ContainSingle(path => path.Id == connection.Id.Value && path.Availability == ConnectionAvailability.Blocked);
+        var path = map.Connections.Should().ContainSingle(path => path.Id == connection.Id.Value && path.Availability == ConnectionAvailability.Blocked).Subject;
+        path.SourceLocationName.Should().Be(reloadedWorld.GetLocation(connection.SourceLocationId).StructuralNameKey.Replace('-', ' '));
+        path.DestinationLocationName.Should().Be(reloadedWorld.GetLocation(connection.DestinationLocationId).StructuralNameKey.Replace('-', ' '));
     }
 }
