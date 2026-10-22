@@ -9,16 +9,16 @@
 
 ## Configure local development
 
-The Web application binds `AzureSpeechTTS` settings. The current default voice configuration is `en-US` / `en-US-GuyNeural`, listed in [Azure Speech language and voice support](https://learn.microsoft.com/azure/ai-services/speech-service/language-support#text-to-speech-voices), with pitch `-10%` and speaking rate `-20%`. These prosody values are starting points; adjust them by listening with the intended scene text. The voice name, locale, pitch, and rate can be overridden in user secrets.
+The Web application binds `AzureSpeechTTS` settings. The current default voice configuration is `en-US` / `en-US-RogerNeural`, listed in [Azure Speech language and voice support](https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts#voice-styles-and-roles), with pitch `-15%` and speaking rate `-25%`. This is an approximation of an older, measured narrator; Azure's standard `en-US` voices do not support an older-adult role. Tune the settings by listening with the intended scene text. The voice name, locale, pitch, and rate can be overridden in user secrets.
 
 For local development, authenticate with Microsoft Entra (for example, `az login`) and grant the signed-in identity access to synthesize speech. Set the Speech resource endpoint in user secrets if it is not already supplied by local settings:
 
 ```powershell
 dotnet user-secrets set "AzureSpeechTTS:Endpoint" "<speech-resource-endpoint>" --project src/AI.SpectrumAdventure.Web
 dotnet user-secrets set "AzureSpeechTTS:Locale" "en-US" --project src/AI.SpectrumAdventure.Web
-dotnet user-secrets set "AzureSpeechTTS:VoiceName" "en-US-GuyNeural" --project src/AI.SpectrumAdventure.Web
-dotnet user-secrets set "AzureSpeechTTS:Pitch" "-10%" --project src/AI.SpectrumAdventure.Web
-dotnet user-secrets set "AzureSpeechTTS:Rate" "-20%" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:VoiceName" "en-US-RogerNeural" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:Pitch" "-15%" --project src/AI.SpectrumAdventure.Web
+dotnet user-secrets set "AzureSpeechTTS:Rate" "-25%" --project src/AI.SpectrumAdventure.Web
 ```
 
 In Azure, use the app's managed identity with the corresponding Speech resource permissions. Do not put resource keys in tracked settings or send credentials to the browser.
@@ -60,7 +60,7 @@ The narrative remains readable and gameplay responsive; each non-empty narrative
 
 ### Automated checks
 
-- .NET narration tests: 8 passed across `AzureSpeechNarrationServiceTests`, `NarrationSsmlBuilderTests`, and `SceneNarrationFailureTests`.
+- .NET narration tests: 9 passed across `AzureSpeechNarrationServiceTests`, `NarrationSsmlBuilderTests`, and `SceneNarrationFailureTests`.
 - Browser audio tests: 6 passed with `node --test tests\AI.SpectrumAdventure.IntegrationTests\narration-audio.test.js`.
 - JavaScript syntax check: `node --check src\AI.SpectrumAdventure.Web\wwwroot\js\adventure-audio.js` passed.
 
@@ -77,6 +77,6 @@ The narrative remains readable and gameplay responsive; each non-empty narrative
 - Repeated exact text reuses cached output: the service test verifies two identical synthesis requests produce one speech-client call.
 - Speech-service failure and later recovery are covered by fake-client tests; browser playback failure and later narration were also exercised in the running game without changing or exposing credentials.
 - The current playable adventure does not expose an empty-narrative scene. The page's whitespace guard was verified to return before calling the synthesis service.
-- Voice delivery uses the configured `en-US-GuyNeural` voice, pitch `-10%`, and rate `-20%`. The player previously confirmed narration playback works; subjective voice-quality scoring by a larger playtest group remains outside this local technical validation.
+- The default voice profile is now `en-US-RogerNeural`, pitch `-15%`, and rate `-25%`, targeting an older, measured male narrator. Azure's standard `en-US` voices do not list older-adult role support; the updated profile is covered by SSML tests but still needs subjective listening validation.
 
 These checks use deterministic or browser-level equivalents where the current adventure does not expose a corresponding live scenario. The measured local mix exceeded the specified 10 dB threshold in all sampled speech-active intervals.

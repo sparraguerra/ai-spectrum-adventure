@@ -13,9 +13,9 @@ public sealed class NarrationSsmlBuilderTests
         var options = new AzureSpeechOptions
         {
             Locale = "en-US",
-            VoiceName = "en-US-GuyNeural",
-            Pitch = "-10%",
-            Rate = "-20%"
+            VoiceName = "en-US-RogerNeural",
+            Pitch = "-15%",
+            Rate = "-25%"
         };
         var builder = new NarrationSsmlBuilder(Options.Create(options));
 
@@ -24,11 +24,25 @@ public sealed class NarrationSsmlBuilderTests
         document.Root!.Name.Should().Be(XName.Get("speak", "http://www.w3.org/2001/10/synthesis"));
         document.Root.Attribute(XNamespace.Xml + "lang")!.Value.Should().Be("en-US");
         var voice = document.Root.Element(document.Root.Name.Namespace + "voice")!;
-        voice.Attribute("name")!.Value.Should().Be("en-US-GuyNeural");
+        voice.Attribute("name")!.Value.Should().Be("en-US-RogerNeural");
         var prosody = voice.Element(voice.Name.Namespace + "prosody")!;
-        prosody.Attribute("pitch")!.Value.Should().Be("-10%");
-        prosody.Attribute("rate")!.Value.Should().Be("-20%");
+        prosody.Attribute("pitch")!.Value.Should().Be("-15%");
+        prosody.Attribute("rate")!.Value.Should().Be("-25%");
         prosody.Value.Should().Be("The forest is silent.");
+    }
+
+    [Fact]
+    public void Defaults_UseTheOlderMeasuredNarratorProfile()
+    {
+        var builder = new NarrationSsmlBuilder(Options.Create(new AzureSpeechOptions()));
+
+        var document = XDocument.Parse(builder.Build("The forest is silent."));
+        var voice = document.Root!.Element(document.Root.Name.Namespace + "voice")!;
+        var prosody = voice.Element(voice.Name.Namespace + "prosody")!;
+
+        voice.Attribute("name")!.Value.Should().Be("en-US-RogerNeural");
+        prosody.Attribute("pitch")!.Value.Should().Be("-15%");
+        prosody.Attribute("rate")!.Value.Should().Be("-25%");
     }
 
     [Fact]
