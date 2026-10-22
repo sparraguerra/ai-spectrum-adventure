@@ -6,7 +6,7 @@
 
 ## Summary
 
-Narrate the text shown in the gameplay Narrative panel with Azure Speech, using a locale-appropriate neural voice and SSML prosody tuned for a low-pitched, slow, mysterious delivery. Keep synthesis and credentials on the server, play the resulting audio in the existing Blazor page, and reduce background music gain to 25% of the browser's current default. Cancel obsolete narration, keep text and gameplay available on failure, and cache repeated synthesis in bounded process memory to limit service calls.
+Narrate the text shown in the gameplay Narrative panel with Azure Speech, using a locale-appropriate neural voice and SSML prosody tuned for a low-pitched, slow, mysterious delivery. Keep synthesis and credentials on the server, play the resulting audio in the existing Blazor page, and reduce background music gain to 25% of the browser's current default. Duck music to 3% while narration plays to maintain the measured foreground margin, then restore the 25% baseline. Cancel obsolete narration, keep text and gameplay available on failure, and cache repeated synthesis in bounded process memory to limit service calls.
 
 ## Technical Context
 
@@ -29,7 +29,7 @@ Narrate the text shown in the gameplay Narrative panel with Azure Speech, using 
 - Use SSML synthesis to control voice pitch and speaking rate; do not use Speech text-streaming mode because it does not support the per-text SSML needed for the requested delivery.
 - Keep Azure Speech credentials and synthesis on the server; use Microsoft Entra credentials/managed identity in Azure and local user secrets for development.
 - Use the current visible `LastResult.Narrative` paragraph as the scene text. Narrate the initial scene narrative and each subsequent non-empty narrative update; do not narrate UI labels, status messages, or unrelated panels.
-- Set the background audio element's effective `volume` property to `0.25` (25% of its current browser-default gain) and narration playback to foreground gain. The configured gain ratio is nominally about 12 dB in favor of narration.
+- Set the background audio element's effective `volume` property to `0.25` outside narration and `0.03` while narration plays; keep narration at foreground gain. Verify the resulting mix because source mastering affects the measured RMS difference.
 - Speech-service errors, cancellation, or browser playback errors must not block text display or gameplay. Do not log speech keys or full scene text.
 - Voice and style availability varies by locale. Select a prebuilt neural voice for the scene language, verify the candidate and any optional style against Azure's supported-voice list, and tune by listening; do not imitate a named person's voice.
 

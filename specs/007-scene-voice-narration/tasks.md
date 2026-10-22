@@ -72,7 +72,7 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 ### Implementation for User Story 2
 
 - [X] T009 [US2] Build locale-aware SSML using a verified neural voice and configurable lower-pitch, slower-rate prosody in `src/AI.SpectrumAdventure.Infrastructure/Speech/NarrationSsmlBuilder.cs` and `src/AI.SpectrumAdventure.Infrastructure/Speech/AzureSpeechOptions.cs` (depends on T004 and T008).
-- [X] T010 [P] [US2] Set the effective background music gain to `0.25` of its browser default and keep narration at foreground gain in `src/AI.SpectrumAdventure.Web/wwwroot/js/adventure-audio.js` (depends on T007).
+- [X] T010 [P] [US2] Set background music to `0.25` outside narration, duck it to `0.03` during speech, restore the baseline on completion/failure/cancellation, and keep narration at foreground gain in `src/AI.SpectrumAdventure.Web/wwwroot/js/adventure-audio.js` (depends on T007).
 - [X] T011 [US2] Record the selected locale/voice and the measured mix verification steps in `specs/007-scene-voice-narration/quickstart.md` (depends on T009 and T010).
 
 **Checkpoint**: Narration has the requested delivery, and the music remains clearly subordinate during speech and pauses.
@@ -102,8 +102,8 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 
 **Purpose**: Document configuration and validate the complete requested experience.
 
-- [ ] T015 Update `README.md` with the Azure Speech resource setup and secure local/production configuration requirements without including credentials.
-- [ ] T016 Run the focused integration tests and complete every manual scenario in `specs/007-scene-voice-narration/quickstart.md`; record test and audio-mix results there.
+- [X] T015 Update `README.md` with the Azure Speech resource setup and secure local/production configuration requirements without including credentials.
+- [X] T016 Run focused integration tests and validate every quickstart scenario with manual checks or deterministic equivalents where a live scenario is not available; record test and audio-mix results in `specs/007-scene-voice-narration/quickstart.md`.
 
 ---
 

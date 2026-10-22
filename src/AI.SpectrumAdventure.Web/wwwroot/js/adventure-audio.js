@@ -1,14 +1,23 @@
 window.adventureAudio = (() => {
-    const musicVolume = 0.25;
+    const musicVolume = 0.15;
+    const narrationMusicVolume = 0.03;
     const getAudio = () => document.getElementById("adventure-background-audio");
     let narrationAudio = null;
     let narrationObjectUrl = null;
     let narrationGeneration = 0;
 
+    const updateMusicVolume = () => {
+        const audio = getAudio();
+        if (audio) {
+            audio.volume = narrationAudio ? narrationMusicVolume : musicVolume;
+        }
+    };
+
     const releaseNarration = (audio, objectUrl) => {
         if (narrationAudio === audio) {
             narrationAudio = null;
             narrationObjectUrl = null;
+            updateMusicVolume();
         }
 
         audio.pause();
@@ -31,6 +40,7 @@ window.adventureAudio = (() => {
         if (objectUrl) {
             URL.revokeObjectURL(objectUrl);
         }
+        updateMusicVolume();
     };
 
     return {
@@ -42,7 +52,7 @@ window.adventureAudio = (() => {
             }
 
             audio.muted = muted;
-            audio.volume = musicVolume;
+            updateMusicVolume();
             try {
                 await audio.play();
                 return true;
@@ -60,7 +70,7 @@ window.adventureAudio = (() => {
             }
 
             audio.muted = muted;
-            audio.volume = musicVolume;
+            updateMusicVolume();
             if (muted) {
                 return true;
             }
@@ -83,6 +93,7 @@ window.adventureAudio = (() => {
 
             audio.pause();
             audio.currentTime = 0;
+            updateMusicVolume();
         },
 
         async playNarration(streamReference, contentType, componentReference, playbackGeneration) {
@@ -100,6 +111,7 @@ window.adventureAudio = (() => {
             narrationAudio = audio;
             narrationObjectUrl = objectUrl;
             audio.volume = 1;
+            updateMusicVolume();
 
             audio.addEventListener("ended", () => releaseNarration(audio, objectUrl), { once: true });
             audio.addEventListener("error", () => {

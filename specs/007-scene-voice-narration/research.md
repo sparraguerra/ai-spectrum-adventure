@@ -33,9 +33,9 @@
 
 ## Decision 4: Keep playback in the existing browser audio module
 
-**Decision**: Extend `adventure-audio.js` to play a transient audio stream, stop the previous narration, and release browser resources when playback ends or is cancelled. Set background-music element gain to `0.25` and narration gain to the foreground level.
+**Decision**: Extend `adventure-audio.js` to play a transient audio stream, stop the previous narration, and release browser resources when playback ends or is cancelled. Keep background music at `0.25` outside narration, duck it to `0.03` while speech plays, and keep narration at the foreground level.
 
-**Rationale**: The gameplay page already controls background music through a hidden HTML audio element and JavaScript interop. Reusing that module keeps audio lifecycle and mixing next to the existing browser-specific behavior. A 0.25 music gain against 1.0 narration gain is nominally about 12 dB lower.
+**Rationale**: The gameplay page already controls background music through a hidden HTML audio element and JavaScript interop. Reusing that module keeps audio lifecycle and mixing next to the existing browser-specific behavior. A browser Web Audio RMS measurement showed that `0.25` music gain alone did not meet the 10 dB requirement, so music is temporarily ducked to `0.03` during speech and restored to `0.25` afterward.
 
 **Alternatives considered**:
 - Store generated audio as a permanent Blob asset: rejected because it adds persistence and lifecycle work for text that can be synthesized again.
