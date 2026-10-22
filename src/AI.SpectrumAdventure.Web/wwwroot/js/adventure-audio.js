@@ -85,7 +85,7 @@ window.adventureAudio = (() => {
             audio.currentTime = 0;
         },
 
-        async playNarration(streamReference, contentType) {
+        async playNarration(streamReference, contentType, componentReference, playbackGeneration) {
             stopNarration();
             const generation = narrationGeneration;
             const audioBytes = await streamReference.arrayBuffer();
@@ -108,11 +108,15 @@ window.adventureAudio = (() => {
                 }
                 console.warn("Scene narration audio could not be decoded or played.");
                 releaseNarration(audio, objectUrl);
+                componentReference.invokeMethodAsync(
+                    "ReportNarrationPlaybackFailureAsync",
+                    playbackGeneration
+                ).catch(error => console.warn("Scene narration failure could not be reported to the page.", error));
             }, { once: true });
 
             try {
                 await audio.play();
-                return true;
+                return generation === narrationGeneration;
             } catch (error) {
                 if (generation !== narrationGeneration) {
                     return false;

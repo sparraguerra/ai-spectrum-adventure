@@ -29,9 +29,10 @@ From the repository root:
 
 ```powershell
 dotnet test tests/AI.SpectrumAdventure.IntegrationTests/AI.SpectrumAdventure.IntegrationTests.csproj
+node --test tests\AI.SpectrumAdventure.IntegrationTests\narration-audio.test.js
 ```
 
-The focused tests must not call the live Azure Speech resource. They verify SSML escaping/configuration, cache identity and bounds, cancellation, and non-blocking failure behavior through the replaceable speech boundary.
+The focused tests must not call the live Azure Speech resource. The .NET tests verify SSML escaping/configuration, cache identity, cancellation, retries, and non-blocking failure behavior through the replaceable speech boundary. The Node test verifies browser playback cancellation, failure reporting, and audio-resource cleanup.
 
 ## Run the gameplay validation
 

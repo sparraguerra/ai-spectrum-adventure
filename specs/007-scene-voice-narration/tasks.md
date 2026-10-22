@@ -87,12 +87,12 @@ Source and test paths are repository-relative under `src/` and `tests/`, as deta
 
 ### Tests for User Story 3
 
-- [ ] T012 [US3] Add tests for synthesis failure, playback cancellation, and a successful later synthesis after a prior failure using fakes in `tests/AI.SpectrumAdventure.IntegrationTests/SceneNarrationFailureTests.cs`.
+- [X] T012 [US3] Add tests for synthesis failure, playback cancellation, and a successful later synthesis after a prior failure using fakes in `tests/AI.SpectrumAdventure.IntegrationTests/SceneNarrationFailureTests.cs`.
 
 ### Implementation for User Story 3
 
-- [ ] T013 [P] [US3] Handle typed synthesis failures without hiding the narrative or blocking game input, and report a non-blocking audio status in `src/AI.SpectrumAdventure.Web/Components/AdventurePage.razor`.
-- [ ] T014 [P] [US3] Report browser playback failures to the page, stop failed audio, and release audio resources in `src/AI.SpectrumAdventure.Web/wwwroot/js/adventure-audio.js`.
+- [X] T013 [P] [US3] Handle typed synthesis failures without hiding the narrative or blocking game input, and report a non-blocking audio status in `src/AI.SpectrumAdventure.Web/Components/AdventurePage.razor`.
+- [X] T014 [P] [US3] Report browser playback failures to the page, stop failed audio, and release audio resources in `src/AI.SpectrumAdventure.Web/wwwroot/js/adventure-audio.js`.
 
 **Checkpoint**: A failed narration does not prevent reading the scene, playing the game, or trying narration for a later scene.
 

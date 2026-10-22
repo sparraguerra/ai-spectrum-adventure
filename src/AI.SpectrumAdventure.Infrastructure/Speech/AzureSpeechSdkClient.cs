@@ -15,27 +15,45 @@ public sealed class AzureSpeechSdkClient(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var speechConfig = CreateSpeechConfig();
-        speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3);
-
-        using var synthesizer = new SpeechSynthesizer(speechConfig, audioConfig: null);
-        using var cancellationRegistration = cancellationToken.Register(
-            static state => _ = ((SpeechSynthesizer)state!).StopSpeakingAsync(),
-            synthesizer);
-        using var result = await synthesizer.SpeakSsmlAsync(ssmlBuilder.Build(text)).WaitAsync(cancellationToken);
-
-        if (result.Reason != ResultReason.SynthesizingAudioCompleted)
+        try
         {
-            var details = SpeechSynthesisCancellationDetails.FromResult(result);
-            throw new SceneNarrationException($"Azure Speech synthesis did not complete ({details.Reason}).");
-        }
+            var speechConfig = CreateSpeechConfig();
+            speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3);
 
-        if (result.AudioData.Length == 0)
+            using var synthesizer = new SpeechSynthesizer(speechConfig, audioConfig: null);
+            using var cancellationRegistration = cancellationToken.Register(
+                static state => _ = ((SpeechSynthesizer)state!).StopSpeakingAsync(),
+                synthesizer);
+            using var result = await synthesizer.SpeakSsmlAsync(ssmlBuilder.Build(text)).WaitAsync(cancellationToken);
+
+            if (result.Reason != ResultReason.SynthesizingAudioCompleted)
+            {
+                var details = SpeechSynthesisCancellationDetails.FromResult(result);
+                throw new SceneNarrationException(
+                    $"Azure Speech synthesis did not complete ({details.Reason}: {details.ErrorCode}).");
+            }
+
+            if (result.AudioData.Length == 0)
+            {
+                throw new SceneNarrationException("Azure Speech returned empty narration audio.");
+            }
+
+            return result.AudioData;
+        }
+        catch (SceneNarrationException)
         {
-            throw new SceneNarrationException("Azure Speech returned empty narration audio.");
+            throw;
         }
-
-        return result.AudioData;
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new SceneNarrationException(
+                $"Azure Speech request failed ({exception.GetType().Name}).",
+                exception);
+        }
     }
 
     private SpeechConfig CreateSpeechConfig()

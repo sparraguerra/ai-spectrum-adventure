@@ -1,4 +1,5 @@
 @page "/adventure"
+@implements IAsyncDisposable
 
 @using AI.SpectrumAdventure.Application.Games
 @using AI.SpectrumAdventure.Application.Orchestration
@@ -175,6 +176,8 @@
     private string? NarrationStatus;
     private ActionResult? LastNarrationResult;
     private CancellationTokenSource? NarrationCancellation;
+    private DotNetObjectReference<AdventurePage>? narrationPageReference;
+    private int narrationPlaybackGeneration;
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
@@ -184,10 +187,11 @@
         }
 
         LastNarrationResult = LastResult;
+        var playbackGeneration = ++narrationPlaybackGeneration;
         NarrationCancellation?.Cancel();
         NarrationCancellation?.Dispose();
         NarrationCancellation = new CancellationTokenSource();
-        _ = NarrateAsync(LastResult?.Narrative, NarrationCancellation.Token);
+        _ = NarrateAsync(LastResult?.Narrative, NarrationCancellation.Token, playbackGeneration);
         return Task.CompletedTask;
     }
 
@@ -339,7 +343,7 @@
         return results.Where(result => result.IsNewDiscovery).ToArray();
     }
 
-    private async Task NarrateAsync(string? text, CancellationToken cancellationToken)
+    private async Task NarrateAsync(string? text, CancellationToken cancellationToken, int playbackGeneration)
     {
         try
         {
@@ -360,26 +364,77 @@
 
             using var stream = new MemoryStream(audio.AudioBytes, writable: false);
             using var streamReference = new DotNetStreamReference(stream);
-            await JS.InvokeVoidAsync(
+            var started = await JS.InvokeAsync<bool>(
                 "adventureAudio.playNarration",
                 cancellationToken,
                 streamReference,
-                audio.ContentType);
+                audio.ContentType,
+                narrationPageReference ??= DotNetObjectReference.Create(this),
+                playbackGeneration);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!started)
+            {
+                await ShowNarrationFailureAsync(
+                    "Narration could not be played. You can continue reading the scene.",
+                    playbackGeneration);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
         catch (SceneNarrationException exception)
         {
-            Logger.LogWarning("Scene narration synthesis failed with {ErrorType}.", exception.GetType().Name);
-            NarrationStatus = "Narration is unavailable. You can continue reading the scene.";
-            await InvokeAsync(StateHasChanged);
+            Logger.LogWarning(
+                "Scene narration synthesis failed with {ErrorType}: {ErrorMessage}",
+                exception.GetType().Name,
+                exception.Message);
+            await ShowNarrationFailureAsync(
+                "Narration is unavailable. You can continue reading the scene.",
+                playbackGeneration);
         }
         catch (JSException exception)
         {
             Logger.LogWarning("Scene narration playback failed with {ErrorType}.", exception.GetType().Name);
-            NarrationStatus = "Narration could not be played. You can continue reading the scene.";
-            await InvokeAsync(StateHasChanged);
+            await ShowNarrationFailureAsync(
+                "Narration could not be played. You can continue reading the scene.",
+                playbackGeneration);
+        }
+    }
+
+    [JSInvokable]
+    public Task ReportNarrationPlaybackFailureAsync(int playbackGeneration) =>
+        ShowNarrationFailureAsync(
+            "Narration could not be played. You can continue reading the scene.",
+            playbackGeneration);
+
+    private async Task ShowNarrationFailureAsync(string message, int playbackGeneration)
+    {
+        if (playbackGeneration != narrationPlaybackGeneration)
+        {
+            return;
+        }
+
+        NarrationStatus = message;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        narrationPlaybackGeneration++;
+        NarrationCancellation?.Cancel();
+        NarrationCancellation?.Dispose();
+
+        try
+        {
+            await JS.InvokeVoidAsync("adventureAudio.stopNarration");
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        finally
+        {
+            narrationPageReference?.Dispose();
+            narrationPageReference = null;
         }
     }
 
