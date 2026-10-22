@@ -12,7 +12,7 @@
 
 ## Decision 2: Use SSML synthesis for the voice delivery
 
-**Decision**: Use standard text-to-speech synthesis with SSML prosody controls for pitch and speaking rate. Begin listening tests with a modest lower-pitch and slower-rate adjustment (for example, pitch `-10%` and rate `-20%`), then tune against the acceptance criteria. Use a locale-matched prebuilt neural voice. Only apply a named speaking style after confirming that the selected voice supports it.
+**Decision**: Use standard text-to-speech synthesis with SSML prosody controls for pitch and speaking rate. The current English narrator profile uses `en-US-RogerNeural`, pitch `-15%`, and rate `-25%` as an older, measured male approximation. The Azure standard `en-US` voices do not expose older-adult role support, so do not add an unsupported age role to SSML; tune the selected prebuilt voice by listening instead. Only apply a named speaking style after confirming that the selected voice supports it.
 
 **Rationale**: Azure SSML supports voice selection, pitch, speaking rate, volume, and other prosody controls. Azure describes these values as suggestions interpreted relative to the selected voice, so the exact voice and values need a listening test. This captures the requested suspenseful mood without cloning a specific person's voice.
 

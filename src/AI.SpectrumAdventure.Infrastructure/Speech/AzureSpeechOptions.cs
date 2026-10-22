@@ -12,11 +12,11 @@ public sealed class AzureSpeechOptions
 
     public string Locale { get; set; } = "en-US";
 
-    public string VoiceName { get; set; } = "en-US-GuyNeural";
+    public string VoiceName { get; set; } = "en-US-RogerNeural";
 
-    public string Pitch { get; set; } = "-10%";
+    public string Pitch { get; set; } = "-15%";
 
-    public string Rate { get; set; } = "-20%";
+    public string Rate { get; set; } = "-25%";
 
     public int CacheSizeLimit { get; set; } = 128;
 
