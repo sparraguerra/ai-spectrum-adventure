@@ -11,6 +11,7 @@ using AI.SpectrumAdventure.Application.Authoring;
 using AI.SpectrumAdventure.Application.Lore;
 using AI.SpectrumAdventure.Application.Worlds;
 using AI.SpectrumAdventure.Infrastructure.Persistence;
+using AI.SpectrumAdventure.Infrastructure.Speech;
 using AI.SpectrumAdventure.Infrastructure.Storage;
 using AI.SpectrumAdventure.Web.Components;
 using AI.SpectrumAdventure.Web.Services;
@@ -112,6 +113,10 @@ builder.Services.AddSingleton<IAgentRunner>(sp =>
         name: "AdventureAgent");
     return new AIAgentRunner(agent);
 });
+builder.Services.Configure<AzureSpeechOptions>(builder.Configuration.GetSection(AzureSpeechOptions.SectionName));
+builder.Services.AddSingleton<NarrationSsmlBuilder>();
+builder.Services.AddSingleton<ISpeechSynthesisClient, AzureSpeechSdkClient>();
+builder.Services.AddSingleton<ISceneNarrationService, AzureSpeechNarrationService>();
 builder.Services.AddSingleton<INarratorAgent, NarratorAgent>();
 builder.Services.AddSingleton<INpcAgent, NpcAgent>();
 builder.Services.AddSingleton<IVisualArtDirector, VisualArtDirectorAgent>();
