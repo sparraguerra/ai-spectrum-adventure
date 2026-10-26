@@ -67,7 +67,7 @@ As a player, I want scene text to remain available if narration is temporarily u
 - **FR-001**: The game MUST provide spoken narration for the text of every scene that contains text.
 - **FR-002**: Narration MUST preserve the wording and language of the scene text.
 - **FR-003**: Narration MUST use Azure Speech text-to-speech.
-- **FR-004**: The narration voice MUST have a low pitch, slow measured delivery, and mysterious tone. It MUST evoke a classic suspenseful storyteller without reproducing or claiming to be the voice of a specific person.
+- **FR-004**: The narration voice MUST have a low pitch, slow measured delivery, and mysterious tone, with an older male narrator quality. It MUST evoke a classic suspenseful storyteller without reproducing or claiming to be the voice of a specific person.
 - **FR-005**: The default game background-music volume MUST be reduced to 25% of its existing default level.
 - **FR-006**: While narration is playing, the background music MUST be at least 10 dB quieter than the narration. The game MUST temporarily duck music as needed and restore the 25% default gain when narration stops, ends, or fails.
 - **FR-007**: Narration for a scene MUST stop when the player leaves that scene, and narration from consecutive scenes MUST NOT overlap.

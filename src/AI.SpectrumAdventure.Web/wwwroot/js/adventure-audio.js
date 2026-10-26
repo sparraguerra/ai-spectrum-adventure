@@ -1,5 +1,5 @@
 window.adventureAudio = (() => {
-    const musicVolume = 0.15;
+    const musicVolume = 0.12;
     const narrationMusicVolume = 0.03;
     const getAudio = () => document.getElementById("adventure-background-audio");
     let narrationAudio = null;
